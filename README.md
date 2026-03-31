@@ -9,8 +9,8 @@ Currently not all commands are open. Since it was created for private use, some 
   ### /start
 
   Starts a DnD session. Grants access to the following commands:
-  - (/new_dice)[#/new_dice]
-  - (/instance_dice)[#/instance_dice]
+  - [/new_dice](#new_dice)
+  - [/instance_dice](#/instance_dice)
   ### /end
   
   Ends a DnD session.
@@ -55,8 +55,9 @@ Currently not all commands are open. Since it was created for private use, some 
   Outputs the raw JSON file.
 </details>
 
-## Voice
-NOTE: ALL COMMANDS, SAVE (JOIN)[#/join] AND (LEAVE)[#/leave] ARE NOT CURRENTLY OPEN FOR USE. THIS MAY OR MAY NOT CHANGE IN THE FUTURE.
+<details>
+
+NOTE: ALL COMMANDS, EXCEPT [JOIN](#/join) AND [LEAVE](#/leave) ARE NOT CURRENTLY OPEN FOR USE. THIS MAY OR MAY NOT CHANGE IN THE FUTURE.
 
 ### /join
 Joins VC. If already in VC in guild, changes VC to sender's.
@@ -79,6 +80,9 @@ Pauses the currently playing song.
 Resumes the currently paused song.
 ### /repeat
 Repeats the current song.
+
+</details>
+
 ## Miscellaneous
 ### /random_msg
 Returns a random message sent by `user` specified by sender.
