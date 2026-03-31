@@ -5,9 +5,7 @@ Currently not all commands are open. Since it was created for private use, some 
 # Commands
 <details>
   <summary>
-    
     ## DnD
-    
     </summary>
   
   ### /start
