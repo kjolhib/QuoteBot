@@ -1,0 +1,14 @@
+# macOS system files
+.DS_Store
+._*
+
+# Dependencies
+node_modules/
+/vendor
+
+# log files
+*.log
+tmp/
+
+# env var
+.env

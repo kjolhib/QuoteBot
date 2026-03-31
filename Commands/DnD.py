@@ -1,0 +1,222 @@
+import datetime
+import os
+import random
+import discord
+from Helpers.Timezone_helper import format_AEST
+from Helpers.Utility_helpers import safe_send, safe_send_embed, safe_send_file
+from Helpers.DnD_helpers import *
+from ErrorHandler import ErrorHandler as eh
+from Classes import GuildState as gs
+from Classes import DnDSession as dsesh
+from Classes import Dice as d
+
+"""
+Commands
+"""
+async def run_start(interaction: discord.Interaction):
+  state = gs.get_guild_state(str(interaction.guild_id))
+  if state.dnd_session is not None:
+    await safe_send(interaction, f"Session already started.")
+    return
+  
+  # Create new class
+  state.dnd_session = dsesh.DnDSession()
+  state.dnd_session.is_active = True
+  state.dnd_session.start_time = interaction.created_at.timestamp()
+  human_readable_time = format_AEST(interaction.created_at, "%H:%M:%S")
+  await safe_send(interaction, f"New session started at {human_readable_time}.")
+
+async def run_end(interaction: discord.Interaction):
+  state = gs.get_guild_state(str(interaction.guild_id))
+  if state.dnd_session is None:
+    await safe_send(interaction, f"No session is active.")
+    return
+
+  # How long the session lasted
+  end_time = interaction.created_at.timestamp()
+  duration = end_time - state.dnd_session.start_time
+  human_readable_time = str(datetime.timedelta(seconds=duration))
+  
+  # Clear session
+  state.dnd_session = None
+  await safe_send(interaction, f"Session ended after {human_readable_time} seconds.")
+
+async def run_new_dice_instance(interaction, scenario, die_num):
+  """
+  Creates a new dice instance
+  If not active session, ignore
+  """
+  state = gs.get_guild_state(str(interaction.guild_id))
+  if state.dnd_session is None:
+    await safe_send(interaction, f"Please only create instance die during a DnD session.")
+    return
+
+  if (die_num < 6 and die_num != 4):
+    await safe_send(interaction, f"I do not know what a D{die_num} is. Choose a die that has either 4 or 6 or more faces ya bingus.")
+    return
+
+  curr_sesh_dies = state.dnd_session.current_session_dies
+
+  for s in curr_sesh_dies:
+    if (scenario == s.scenario):
+      await safe_send(interaction, f"Dice with this scenario name: {scenario} already exists.")
+      return
+    
+  if len(curr_sesh_dies) > 100:
+    await safe_send(interaction, f"Too many die! There's over 100 dies here! How did you even create this many?!")
+    return
+  try:
+    # Create new instance of dice with scenario and faces
+    new_dice = d.Dice(scenario, int(die_num))
+    curr_sesh_dies.append(new_dice)
+    await safe_send(interaction, f"Created new dice of the __{scenario}__ (D**{die_num}**) scenario. There are now **{len(curr_sesh_dies)}** die in the session.")
+  except Exception as e:
+    await safe_send(interaction, f"[ERROR]: new_dice_instance: error creating new dice: {e}")
+    err = eh.Error(e, "/skip")
+    eh.report_error(err)
+
+async def run_scenario_dice(interaction, scenario, addon=0):
+  state = gs.get_guild_state(str(interaction.guild_id))
+  if state.dnd_session is None:
+    await safe_send(interaction, f"No session is active.")
+    return
+
+  curr_sesh_dies = state.dnd_session.current_session_dies
+  found_dice = False
+  for dice in curr_sesh_dies:
+    if (dice.scenario == scenario):
+      found_dice = True
+      current_dice : d.Dice = dice
+      break
+
+  # dice not found
+  if not found_dice:
+    await safe_send(interaction, f"No dice of scenario **{scenario}** found. Please create one first using /new_dice")
+    return
+
+  try:
+    roll = current_dice.simulate_weighted_rolls()
+  except Exception as e:
+    await safe_send(interaction, f"Error simulating the dice roll... Check logs for details.")
+    err = eh.Error(e, "/s_dice/simulate_weighted_rolls")
+    eh.report_error(err)
+
+  # addon print msg
+  # this took longer than i'd like to admit. 2am coding is such a vibe
+  addon_print = addon
+  if addon:
+    result = roll + addon
+    sign = "+" if addon > 0 else "-"
+    if addon_print < 0:
+      addon_print = -addon_print
+    print_msg = f"You have rolled a {roll} (luck) {sign} {addon_print} (stats) = **{result}** on {scenario} (D{current_dice.faces})."
+  else:
+    print_msg = f"You have rolled a **{roll}** on {scenario} (D{current_dice.faces})."
+
+  await safe_send(interaction, print_msg)
+
+async def run_list_dice(interaction):
+  # checks session active
+  state = gs.get_guild_state(str(interaction.guild_id))
+  if state.dnd_session is None:
+    await safe_send(interaction, f"No session is active.")
+    return
+  
+  curr_sesh_dies = state.dnd_session.current_session_dies
+  if not curr_sesh_dies:
+    # empty
+    await safe_send(interaction, f"No dices created.")
+    return
+  
+  print_msg = "**Die Created:**\n"
+  for die in curr_sesh_dies:
+    print_msg += f"__{die.scenario}__: *{die.faces}* faces\n"
+
+  await safe_send(interaction, print_msg)
+
+async def run_generate_weather(interaction):
+  """
+  Generates a new weather from a pool.
+  """
+  data = load_weather()
+
+  weights = []
+  weathers = []
+
+  for weather, count in data.items():
+    weathers.append(weather)
+    weights.append(1/(count+1))
+
+  chosen = random.choices(weathers, weights=weights, k=1)[0]
+  data[chosen] += 1
+  save_weather(data)
+  await safe_send(interaction, f"The weather you have rolled is **{chosen}**! is that good?")
+
+async def run_weather_stats(interaction):
+  data = load_weather()
+  embed = discord.Embed.from_dict(data)
+
+  for weather, count in data.items():
+    embed.add_field(name=weather, value=str(count), inline=False)
+  
+  await safe_send_embed(interaction, embeds=embed)
+
+async def run_clear_weather_dict(interaction):
+  reset_weather_to_default()
+  await safe_send(interaction, "Weather data cleared.")
+
+async def run_add_new_weather(interaction, weather):
+  data = load_weather()
+  data[weather] = 0
+  save_weather(data)
+  await safe_send(interaction, f"Weather '{weather}' has been added.")
+
+async def run_remove_weather(interaction, weather):
+  data = load_weather()
+  if not weather in data:
+    # weather to remove doesn't exist
+    await safe_send(interaction, f"Weather {weather} is not a valid weather yet! Add it first with /add_weather!")
+    return
+
+  count = data[weather]
+  try:
+    del data[weather]
+    save_weather(data)
+  except Exception as e:
+    await safe_send(interaction, f"Error removing {weather}: check logs for more details.")
+    return
+  await safe_send(interaction, f"Weather {weather} removed with count {count}.")
+
+async def run_modify_weather_counts(interaction, weather, new_count):
+  data = load_weather()
+  if not weather in data:
+    # weather to remove doesn't exist
+    await safe_send(interaction, f"Weather {weather} is not a valid weather yet! Add it first with /add_weather!")
+    return
+
+  if new_count < 0:
+    # negative count
+    await safe_send(interaction, f"Negative counts ({new_count}) are not allowed you forehead. Try again.")
+    return
+  
+  old_count = data[weather]
+  data[weather] = new_count
+  save_weather(data)
+  await safe_send(interaction, f"Weather {weather} has been modified to have count {new_count}. Previous count was {old_count}")
+  return
+
+async def run_output_json_file(interaction):
+  try:
+    weather_path = get_weather_path()
+    with open(f"{weather_path}", "rb") as f:
+      file = discord.File(f, filename="weather_probabilities.json")
+      await safe_send_file(interaction, file=file)
+
+  except FileNotFoundError as fnfe:
+    await safe_send(interaction, f"Error, weather_probabilities.json not found. Contact @chewswisely.")
+    err = eh.Error(fnfe, "/resume")
+    eh.report_error(err)
+  except Exception as e:
+    await safe_send(interaction, "Outputting file failed. Check logs for more details.")
+    err = eh.Error(e, "/resume")
+    eh.report_error(err)
