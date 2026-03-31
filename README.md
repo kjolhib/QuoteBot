@@ -4,11 +4,11 @@ QuoteBot is a discord bot that contains commands related to DnD, randomness, and
 Currently not all commands are open. Since it was created for private use, some commands are used and created for specific scenarios that my friends may require.
 # Commands
 <details>
-    <summary>
-    
-        ### Click to expand for details
-    
-    </summary>
+<summary>
+
+## DnD
+
+</summary>
   
   ### /start
   Starts a DnD session. Grants access to the following commands:
@@ -63,7 +63,11 @@ Currently not all commands are open. Since it was created for private use, some 
 </details>
 
 <details>
-<summary>Voice</summary>
+<summary>
+
+## Voice
+
+</summary>
   
   NOTE: ALL COMMANDS, EXCEPT [JOIN](#join) AND [LEAVE](#leave) ARE NOT CURRENTLY OPEN FOR USE. THIS MAY OR MAY NOT CHANGE IN THE FUTURE.
   
@@ -99,7 +103,11 @@ Currently not all commands are open. Since it was created for private use, some 
 </details>
 
 <details>
-<summary>Miscellaneous</summary>
+<summary>
+
+## Miscellaneous
+
+</summary>
 
   ### /random_msg
   Returns a random message sent by `user` specified by sender.
