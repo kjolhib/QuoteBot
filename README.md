@@ -1,7 +1,9 @@
 # What it is
 QuoteBot is a discord bot that contains commands related to DnD, randomness, and other miscellaneous commands. It was created for private use for mostly DnD purposes for my friends.
 # Limitations
-Currently not all commands are open. Since it was created for private use, some commands are used and created for specific scenarios that my friends may require.
+Currently not all commands are open. Since it was created for private use, some commands are used and created for specific scenarios.
+
+I also don't plan to make the bot publicly available (though haven't really looked into it).
 # Commands
 <details>
 <summary>
