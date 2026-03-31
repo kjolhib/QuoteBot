@@ -5,8 +5,10 @@ Currently not all commands are open. Since it was created for private use, some 
 # Commands
 <details>
     <summary>
-    ### Click to expand for details
-  </summary>
+    
+        ### Click to expand for details
+    
+    </summary>
   
   ### /start
   Starts a DnD session. Grants access to the following commands:
