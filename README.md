@@ -7,8 +7,8 @@ Currently not all commands are open. Since it was created for private use, some 
 #### DnD
 ##### /start
 Starts a DnD session. Grants access to the following commands:
-- (/new_dice)[#new_dice]
-- (/instance_dice)[#instance_dice]
+- (/new_dice)[#/new_dice]
+- (/instance_dice)[#/instance_dice]
 ##### /end
 Ends a DnD session.
 
@@ -51,7 +51,7 @@ This is currently not open to all.
 
 Outputs the raw JSON file.
 #### Voice
-NOTE: ALL COMMANDS, SAVE (JOIN)[#join] AND (LEAVE)[#leave] ARE NOT CURRENTLY OPEN FOR USE. THIS MAY OR MAY NOT CHANGE IN THE FUTURE.
+NOTE: ALL COMMANDS, SAVE (JOIN)[#/join] AND (LEAVE)[#/leave] ARE NOT CURRENTLY OPEN FOR USE. THIS MAY OR MAY NOT CHANGE IN THE FUTURE.
 
 ##### /join
 Joins VC. If already in VC in guild, changes VC to sender's.
