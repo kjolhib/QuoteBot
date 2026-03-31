@@ -74,7 +74,7 @@ Currently not all commands are open. Since it was created for private use, some 
   
   If no valid video found, sends an appropriate message. 
   
-  Note (as of 31/3/2026), with links, youtube links that aren't "standard" (www.youtube.com.watch?v=...) will cause the bot to not find that video. I believe it has something to do with youtube having multiple formats that redirect to the "standard" link, though I have not looked deeply into it.
+  Note (as of 31/3/2026), with links, youtube links that aren't "standard" (`www.youtube.com.watch?v=...`) will cause the bot to not find that video. I believe it has something to do with youtube having multiple formats that redirect to the "standard" link, though I have not looked deeply into it.
   
   ### /skip
   Skips the current song playing.
