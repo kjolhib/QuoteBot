@@ -1,5 +1,4 @@
 import datetime
-import os
 import random
 import discord
 from Helpers.Timezone_helper import format_AEST
