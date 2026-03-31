@@ -4,9 +4,9 @@ QuoteBot is a discord bot that contains commands related to DnD, randomness, and
 Currently not all commands are open. Since it was created for private use, some commands are used and created for specific scenarios that my friends may require.
 # Commands
 <details>
-  <summary>
-    ## DnD
-    </summary>
+    <summary>
+    ### Click to expand for details
+  </summary>
   
   ### /start
   Starts a DnD session. Grants access to the following commands:
