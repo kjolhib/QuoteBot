@@ -60,6 +60,7 @@ Currently not all commands are open. Since it was created for private use, some 
 
 <details>
 <summary>Voice</summary>
+  
   NOTE: ALL COMMANDS, EXCEPT [JOIN](#join) AND [LEAVE](#leave) ARE NOT CURRENTLY OPEN FOR USE. THIS MAY OR MAY NOT CHANGE IN THE FUTURE.
   
   ### /join
