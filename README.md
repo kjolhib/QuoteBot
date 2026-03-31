@@ -6,51 +6,53 @@ Currently not all commands are open. Since it was created for private use, some 
 ## Commands
 <details>
 <summary>DnD</summary>
-#### /start
-Starts a DnD session. Grants access to the following commands:
-- (/new_dice)[#/new_dice]
-- (/instance_dice)[#/instance_dice]
-#### /end
-Ends a DnD session.
+  #### /start
 
-#### /new_dice
-Creates a new weighted dice, with a specified number of `faces`, and of a specific `scenario`.
-
-All instances are destroyed upon bot going offline.
-#### /instance_dice
-Rolls the weighted instance dice with the scenario `scenario`. Instance dices are created with (/new_dice)[#new_dice].
-
-The dice rolls will be weighted to average out as much as possible, that is, the lesser a specific number is rolled, the higher probability it will be rolled next.
-
-#### /list_dice
-Lists the instance die currently active. 
-#### /weather
-This is currently not open to all.
-
-Generates a random weighted weather from a JSON file. The JSON file contains a key-value pair of the weather string - how often it was rolled. The more each weather is rolled, the less likely it will be rolled next.
-#### /weather_stats
-This is currently not open to all.
-
-Returns an embed, structured like the JSON file in more readable format.
-#### /add_weather
-This is currently not open to all.
-
-Modifies the weather JSON file by adding a new weather of a specified `scenario`.
-
-#### /remove_weather
-This is currently not open to all.
-
-Modifies the weather JSON file by removing an existing weather of a specified `scenario`.
-
-#### /modify_weather
-This is currently not open to all.
-
-Modifies a specific `scenario`'s key-value pair to a `new_count`. Useful to backtrack if any extra rolls were made.
-
-#### /get_raw_weather_json
-This is currently not open to all.
-
-Outputs the raw JSON file.
+  Starts a DnD session. Grants access to the following commands:
+  - (/new_dice)[#/new_dice]
+  - (/instance_dice)[#/instance_dice]
+  #### /end
+  
+  Ends a DnD session.
+  
+  #### /new_dice
+  Creates a new weighted dice, with a specified number of `faces`, and of a specific `scenario`.
+  
+  All instances are destroyed upon bot going offline.
+  #### /instance_dice
+  Rolls the weighted instance dice with the scenario `scenario`. Instance dices are created with (/new_dice)[#new_dice].
+  
+  The dice rolls will be weighted to average out as much as possible, that is, the lesser a specific number is rolled, the higher probability it will be rolled next.
+  
+  #### /list_dice
+  Lists the instance die currently active. 
+  #### /weather
+  This is currently not open to all.
+  
+  Generates a random weighted weather from a JSON file. The JSON file contains a key-value pair of the weather string - how often it was rolled. The more each weather is rolled, the less likely it will be rolled next.
+  #### /weather_stats
+  This is currently not open to all.
+  
+  Returns an embed, structured like the JSON file in more readable format.
+  #### /add_weather
+  This is currently not open to all.
+  
+  Modifies the weather JSON file by adding a new weather of a specified `scenario`.
+  
+  #### /remove_weather
+  This is currently not open to all.
+  
+  Modifies the weather JSON file by removing an existing weather of a specified `scenario`.
+  
+  #### /modify_weather
+  This is currently not open to all.
+  
+  Modifies a specific `scenario`'s key-value pair to a `new_count`. Useful to backtrack if any extra rolls were made.
+  
+  #### /get_raw_weather_json
+  This is currently not open to all.
+  
+  Outputs the raw JSON file.
 </details>
 ### Voice
 NOTE: ALL COMMANDS, SAVE (JOIN)[#/join] AND (LEAVE)[#/leave] ARE NOT CURRENTLY OPEN FOR USE. THIS MAY OR MAY NOT CHANGE IN THE FUTURE.
