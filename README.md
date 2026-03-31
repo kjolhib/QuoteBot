@@ -38,6 +38,7 @@ Currently not all commands are open. Since it was created for private use, some 
   #### /new_dice
 
   </summary>
+  
   Creates a new weighted dice, with a specified number of `faces`, and of a specific `scenario`.
   
   All instances are destroyed upon bot going offline.
