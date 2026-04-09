@@ -41,6 +41,9 @@ def get_weather_path():
   return FILE_NAME
 
 def reset_weather_to_default():
+  """
+  Resets weather_probabilities.json file to INIT_DATA
+  """
   try:
     save_weather(INIT_DATA)
   except Exception as e:

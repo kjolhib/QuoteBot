@@ -4,10 +4,12 @@ from Helpers.Utility_helpers import safe_send
 from Helpers.Quote_helpers import *
 from ErrorHandler import ErrorHandler as eh
 
-"""
-Commands
-"""
 async def run_repeat(interaction, string):
+  """
+  Repeats the string specified by the user.
+  Used to debug and check that the bot actually connected and responded to the user. 
+  Essentially useless command.
+  """
   try:
     await safe_send(interaction, f'{string}')
   except Exception as e:
@@ -17,8 +19,16 @@ async def run_repeat(interaction, string):
 
 async def rand(interaction, user, limit, min_count):
   """
-  Sends a random single text user sent in this server. Quotes the user.
-  :params user: the user to find a quote of
+  Sends a random single text user sent in this server.
+  Quotes the user.
+  Params:
+    - user: the user to quote. The bot will get a random message from this user
+    - limit: the bot will go through the last n messages defined by this variable. ie. limit=200, the bot will check the last 200 messages sent in this channel. Primarily here for timeout purposes. Defaulted to 200
+    - min_count: the minimum number of messages sent by the user where the bot will not output a random message. ie. min_count = 2, if the user has sent < than 2, then the bot will not try to quote. This is mostly to reduce the possibility of the same messages being quoted over and over.
+  
+  Returns:
+    - random message chosen
+    - if min_count specified and num messages < min_count, an appropriate message
   """
   try:
     # Don't try to quote itself

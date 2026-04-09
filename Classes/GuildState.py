@@ -3,6 +3,9 @@ from .DnDSession import DnDSession
 from collections import deque
 
 class GuildState:
+  """
+  Class to store the guild state of each guild where this bot is active.
+  """
   def __init__(self):
     # DnD
     self.dnd_session : DnDSession | None = None # None initially

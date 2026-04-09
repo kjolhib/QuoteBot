@@ -9,15 +9,23 @@ from Helpers.Timezone_helper import convert_time
 
 OPUS_PATH = "/opt/homebrew/Cellar/opus/1.6.1/lib/libopus.0.dylib"
 
-"""
-Command Runners
-"""
 async def run_d(interaction, die_num, addon=0):
+  """
+  Rolls a dice.
+  Given die_num faces, where die_num == (4 || >= 6), roll a dice where addon is added to the result.
+  Params:
+    - die_num: the faces of the die. Must be either exactly 4, or any number >= 6
+    - addon: optional. The number added onto the result. Defaulted to 0
+  """
   if (die_num < 6 and die_num != 4):
     await safe_send(interaction, f"I do not know what a D{die_num} is. Choose a die that has either 4 or 6 or more faces ya bingus.")
     return
+  
+  # Roll a randint from 1 to die_num
   roll = randint(1, die_num)
   addon_print = addon
+
+  # If addon is not null, calculate new result by roll + addon and print appropriately formatted message
   if addon and addon_print != 0:
     sign = "+" if addon_print > 0 else "-"
     if addon_print < 0:
@@ -29,6 +37,13 @@ async def run_d(interaction, die_num, addon=0):
   await safe_send(interaction, print_msg)
 
 async def run_join(interaction: discord.Interaction):
+  """
+  Joins vc.
+  Error codes:
+    - 401: User is currently not in vc
+    - 402: User is in a "stage vc". Bots cannot join stage vcs
+    - 403: Error attempting to join vc. The checks above passed
+  """
   try:
     guild_id = str(interaction.guild_id)
     state = gs.get_guild_state(guild_id)
@@ -48,6 +63,7 @@ async def run_join(interaction: discord.Interaction):
       await safe_send(interaction, "Cannot join Stage Channels.")
       return
     elif vc == 403:
+      # an error when trying to join
       await safe_send(interaction, "Error joining vc.")
       return
 
@@ -59,12 +75,21 @@ async def run_join(interaction: discord.Interaction):
     eh.report_error(err)
 
 async def run_play(interaction: discord.Interaction, query: str):
-  guild_id = str(interaction.guild_id)
+  """
+  Plays a song based on query.
+  Uses ytdlp library to download.
+  Params:
+    - query: the query or a link. Note, currently non-standard youtube links do NOT return any search results. 
+  """
+  # TODO: Modify the query if it's a non-standard yt link to a standard yt link. Probs use regex or otherwise to match and replace standard yt link
 
   # get or create state
+  guild_id = str(interaction.guild_id)
   state = gs.get_guild_state(guild_id)
-
   user = interaction.user
+
+
+  # ensure user is in vc, if not, joins
   voice_client = await ensure_vc(interaction, user, play_cmd=True)
   if voice_client is None:
     # error
@@ -103,29 +128,36 @@ async def run_play(interaction: discord.Interaction, query: str):
 
   # No tracks found
   if tracks is None:
-    await interaction.followup.send("No results found.")
+    await safe_send(interaction, "No results found.")
     return
   
   # Extract tracks
   if tracks:
     first_track = tracks[0]
   else:
-    await interaction.followup.send(f"No results found.")
+    await safe_send(interaction, f"No results found.")
     return
   # print(first_track)
+
+  # Get the first track
   print(f"[PLAY] Found track: {first_track['title']}")
   audio_url = first_track["url"]
   title = first_track.get("title", "Untitled")
 
+  # append song to queue
   state.queue.append((audio_url, title))
-  # Is playing or not, appends to queue or not
+
+  # if currently playing or paused, send notifiaction that the song is added to queue.
   if voice_client.is_playing() or voice_client.is_paused():
-    await interaction.followup.send(f"Added to queue: **{title}**.")
+    await safe_send(interaction, f"Added to queue: **{title}**.")
   else:
-    # await interaction.followup.send(f"Now playing: **{title}**.")
+    # otherwise, play the song now.
     await play_next_song(state, interaction)
   
 async def run_skip(interaction):
+  """
+  Skips the currently playing song.
+  """
   guild_id = str(interaction.guild_id)
   state = gs.get_guild_state(guild_id)
   if not state or not state.voice_client or not state.voice_client.is_playing():
@@ -135,6 +167,9 @@ async def run_skip(interaction):
   await safe_send(interaction, "Skipping current song...")
 
 async def run_pause(interaction):
+  """
+  Pauses the playing song.
+  """
   guild_id = str(interaction.guild_id)
   state = gs.get_guild_state(guild_id)
 
@@ -157,6 +192,9 @@ async def run_pause(interaction):
     eh.report_error(err)
 
 async def run_resume(interaction):
+  """
+  Resumes the paused song.
+  """
   guild_id = str(interaction.guild_id)
   state = gs.get_guild_state(guild_id)
 
@@ -179,6 +217,10 @@ async def run_resume(interaction):
     eh.report_error(err)
 
 async def run_leave(interaction):
+  """
+  Leaves the VC.
+  Clears the queue.
+  """
   guild_id = str(interaction.guild_id)
   state = gs.get_guild_state(guild_id)
 
@@ -196,17 +238,25 @@ async def run_leave(interaction):
     eh.report_error(err)
 
 async def run_repeat(interaction):
+  """
+  Loops the current song if not looping, if looping already, stop looping. Flip flop
+  Sets the guild state's repeat field to true.
+
+  """
   guild_id = str(interaction.guild_id)
   state = gs.get_guild_state(guild_id)
   if not state or not state.current:
     return await safe_send(interaction, "No songs are playing.")
   
-  # flip flop
+  # flip flop: loop <-> no loop
   state.repeat = not state.repeat
   msg = f"Looping current song: {state.current[1]}" if state.repeat else "Will now stop looping."
   await safe_send(interaction, msg)
 
 async def run_list_queue(interaction: discord.Interaction):
+  """
+  Lists the songs in queue.
+  """
   guild_id = str(interaction.guild_id)
   state = gs.get_guild_state(guild_id)
   if not state or not state.voice_client or not state.voice_client.is_connected():
@@ -219,6 +269,7 @@ async def run_list_queue(interaction: discord.Interaction):
     await interaction.followup.send("Queue is empty.")
     return
   
+  # Current title and the queue formatting
   cur_title = state.current[1] if state.current else "Nothing Playing"
   result = f"Currently playing: **{cur_title}** \n**Current Queue:**\n"
   for idx, (_, title) in enumerate(state.queue, start=1):
@@ -235,6 +286,9 @@ async def run_timezone_converter(
   target_city: str,
   date_str: str | None = None
 ):
+  """
+  Timezone converter
+  """
   try:
     dt_origin, dt_target = convert_time(
       time,

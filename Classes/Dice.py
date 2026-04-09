@@ -1,6 +1,12 @@
 import random
 
 class Dice:
+  """
+  A scenario dice.
+  Stored by DnDSession class.
+  Has it's name (scenario), number of faces, and a list of past rolls.
+  Has its own weighted simulated rolls.
+  """
   def __init__(self, scenario, faces):
     self.scenario : str = scenario
     self.faces : int = faces

@@ -9,10 +9,12 @@ from Classes import GuildState as gs
 from Classes import DnDSession as dsesh
 from Classes import Dice as d
 
-"""
-Commands
-"""
 async def run_start(interaction: discord.Interaction):
+  """
+  Starts a DnD session.
+  Creates one if not active.
+  Sets the guild's dnd_session variable to the newly created class DnDSession.
+  """
   state = gs.get_guild_state(str(interaction.guild_id))
   if state.dnd_session is not None:
     await safe_send(interaction, f"Session already started.")
@@ -26,6 +28,10 @@ async def run_start(interaction: discord.Interaction):
   await safe_send(interaction, f"New session started at {human_readable_time}.")
 
 async def run_end(interaction: discord.Interaction):
+  """
+  Ends a DnD session.
+  Clears the guild's dnd_session.
+  """
   state = gs.get_guild_state(str(interaction.guild_id))
   if state.dnd_session is None:
     await safe_send(interaction, f"No session is active.")
@@ -42,8 +48,8 @@ async def run_end(interaction: discord.Interaction):
 
 async def run_new_dice_instance(interaction, scenario, die_num):
   """
-  Creates a new dice instance
-  If not active session, ignore
+  Creates a new dice instance.
+  If not active session, ignore.
   """
   state = gs.get_guild_state(str(interaction.guild_id))
   if state.dnd_session is None:
@@ -75,11 +81,18 @@ async def run_new_dice_instance(interaction, scenario, die_num):
     eh.report_error(err)
 
 async def run_scenario_dice(interaction, scenario, addon=0):
+  """
+  Given a specific DnD die name, roll it, with optional addon
+  Params:
+    - scenario: the name of the die
+    - addon: optional. adds this value to the result of the die roll
+  """
   state = gs.get_guild_state(str(interaction.guild_id))
   if state.dnd_session is None:
     await safe_send(interaction, f"No session is active.")
     return
 
+  # Check that the scenario exists
   curr_sesh_dies = state.dnd_session.current_session_dies
   found_dice = False
   for dice in curr_sesh_dies:
@@ -90,7 +103,7 @@ async def run_scenario_dice(interaction, scenario, addon=0):
 
   # dice not found
   if not found_dice:
-    await safe_send(interaction, f"No dice of scenario **{scenario}** found. Please create one first using /new_dice")
+    await safe_send(interaction, f"No die of scenario **{scenario}** found. Please create one first using /new_dice")
     return
 
   try:
@@ -102,19 +115,23 @@ async def run_scenario_dice(interaction, scenario, addon=0):
 
   # addon print msg
   # this took longer than i'd like to admit. 2am coding is such a vibe
+  # TODO: probably look into this in the future to simplify logic
   addon_print = addon
   if addon:
     result = roll + addon
     sign = "+" if addon > 0 else "-"
     if addon_print < 0:
       addon_print = -addon_print
-    print_msg = f"You have rolled a {roll} (luck) {sign} {addon_print} (stats) = **{result}** on {scenario} (D{current_dice.faces})."
+    print_msg = f"You have rolled a {roll} {sign} {addon_print} (stats) = **{result}** on {scenario} (D{current_dice.faces})."
   else:
     print_msg = f"You have rolled a **{roll}** on {scenario} (D{current_dice.faces})."
 
   await safe_send(interaction, print_msg)
 
 async def run_list_dice(interaction):
+  """
+  Lists the scenario dice that exist.
+  """
   # checks session active
   state = gs.get_guild_state(str(interaction.guild_id))
   if state.dnd_session is None:
@@ -124,7 +141,7 @@ async def run_list_dice(interaction):
   curr_sesh_dies = state.dnd_session.current_session_dies
   if not curr_sesh_dies:
     # empty
-    await safe_send(interaction, f"No dices created.")
+    await safe_send(interaction, f"No dice exists.")
     return
   
   print_msg = "**Die Created:**\n"
@@ -136,22 +153,35 @@ async def run_list_dice(interaction):
 async def run_generate_weather(interaction):
   """
   Generates a new weather from a pool.
+  The pool is found in /weather_probabilities.json.
   """
+
+  # Load weather. from DnD_helpers.py
   data = load_weather()
 
   weights = []
   weathers = []
 
+  # Collect the information from the json, and weight each weather's probability by their counts.
+  # More counts = less probability of being chosen.
   for weather, count in data.items():
     weathers.append(weather)
     weights.append(1/(count+1))
 
+  # choose.
   chosen = random.choices(weathers, weights=weights, k=1)[0]
-  data[chosen] += 1
+  data[chosen] += 1 # increment the count of the weather being chosen in the json file
   save_weather(data)
   await safe_send(interaction, f"The weather you have rolled is **{chosen}**! is that good?")
 
 async def run_weather_stats(interaction):
+  """
+  Lists as an standard embed, the json file.
+  Formatted as:
+    <weather>
+      <count>
+    ...
+  """
   data = load_weather()
   embed = discord.Embed.from_dict(data)
 
@@ -161,16 +191,32 @@ async def run_weather_stats(interaction):
   await safe_send_embed(interaction, embeds=embed)
 
 async def run_clear_weather_dict(interaction):
+  """
+  Resets the weather to default, defined as INIT_DATA in DnD_helpers.py
+  """
   reset_weather_to_default()
   await safe_send(interaction, "Weather data cleared.")
 
 async def run_add_new_weather(interaction, weather):
+  """
+  Adds a new weather to weather_probabilities.json file.
+  Persists across sessions.
+  Does NOT modify INIT_DATA.
+  """
+  # TODO: allow for the newly added weather to "persist". ie. append it to INIT_DATA
+
   data = load_weather()
   data[weather] = 0
   save_weather(data)
   await safe_send(interaction, f"Weather '{weather}' has been added.")
 
 async def run_remove_weather(interaction, weather):
+  """
+  Removes weather from weather_probabilities.json file.
+  Does NOT modify INIT_DATA
+  """
+  # TODO: allow for the removed weather to "persist". ie. delete it to INIT_DATA
+
   data = load_weather()
   if not weather in data:
     # weather to remove doesn't exist
@@ -187,6 +233,12 @@ async def run_remove_weather(interaction, weather):
   await safe_send(interaction, f"Weather {weather} removed with count {count}.")
 
 async def run_modify_weather_counts(interaction, weather, new_count):
+  """
+  Modify the count of a given weather.
+  Params:
+    - weather: the name of the weather to be modified
+    - new_count: the new count of the weather. weather.count = new_count
+  """
   data = load_weather()
   if not weather in data:
     # weather to remove doesn't exist
@@ -205,6 +257,9 @@ async def run_modify_weather_counts(interaction, weather, new_count):
   return
 
 async def run_output_json_file(interaction):
+  """
+  Outputs the raw JSON file for storage if needed.
+  """
   try:
     weather_path = get_weather_path()
     with open(f"{weather_path}", "rb") as f:

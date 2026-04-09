@@ -12,6 +12,7 @@ from Helpers.Utility_helpers import safe_send, with_timeout
 from Classes import DnDSession
 from ErrorHandler import ErrorHandler
 
+# Load env data
 load_dotenv()
 BOT_TOKEN = os.getenv("QBOT_TOKEN")
 if not BOT_TOKEN:
@@ -21,8 +22,8 @@ GUILD_IDS = [
   int(os.getenv("DEV_SERVER")),
   int(os.getenv("GHIONCK"))
 ]
-MAX_SESSION_TIME_MINS = 60
 
+# Set intents and client
 intents = discord.Intents.default()
 intents.message_content = True
 client = commands.Bot(command_prefix="!", intents=intents)
@@ -332,6 +333,7 @@ async def d(interaction: discord.Interaction, faces: int, addon: Optional[int]):
   await Utils.run_d(interaction, faces, addon)
 
 
+# TODO: convert this to embedded links
 @client.tree.command(name="timezone", description="Convert a time in a given timezone to another")
 @app_commands.describe(time="Time at the origin city, HH:MM format")
 @app_commands.describe(origin_country="The origin country, enter IANA-compliant continental name, e.g. America, not USA")

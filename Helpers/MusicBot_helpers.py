@@ -6,9 +6,10 @@ from .Utility_helpers import safe_send
 from Classes.GuildState import GuildState
 
 # Helpers for the music bot features in QuoteBot
-async def search_ytdlp_async(query, ydl_opts, queue):
+async def search_ytdlp_async(query, ydl_opts):
   """
-  Asynchronously runs the searcher for seamlessness
+  Asynchronously runs the searcher for seamlessness.
+  Searches for the query.
   """
   try:
     loop = asyncio.get_running_loop()
@@ -29,12 +30,11 @@ def _extract(query, ydl_opts):
     err = eh.Error(e, "/play/_extract")
     eh.report_error(err)
   
-# Plays the next song
 async def play_next_song(state: GuildState, interaction: discord.Interaction):
   """
   Plays the next song in queue.
   Repeat is handled automatically.
-  Disconnects if queue is empty and repeat is off
+  Disconnects if queue is empty and repeat is off.
   """
   if not state.voice_client:
     return
@@ -44,6 +44,9 @@ async def play_next_song(state: GuildState, interaction: discord.Interaction):
     "options": "-vn -c:a libopus -b:a 96k",
   }
   def after_play(error):
+    """
+    Schedules the next song
+    """
     if error:
       print(f"[ERROR] playing {title}: {error}")
       err = eh.Error(error, "/play: play_next_song")
@@ -129,7 +132,14 @@ async def bot_join_vc(interaction, user_channel, user_name, play_cmd):
 # Ensures that the bot is in vc
 async def ensure_vc(interaction, user, play_cmd=False) -> discord.VoiceClient:
   """
-  Ensures user is in vc, then
+  Ensures user is in VC, bot joins the vc if they are.
+  Params:
+    - user: user that requested the bot to join vc
+    - play_cmd: If called by play_cmd, then we play a song, if not, just join
+  Returns:
+    - 401: User is not in VC
+    - 402: User is in a stage vc
+    - 403: An error joining vc. Above checks passed.
   """
   user_name = user.mention
   # user must be in vc

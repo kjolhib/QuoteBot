@@ -22,6 +22,9 @@ def format_AEST(utc_dt: datetime, fmt: str = "%Y-%m-%d %H:%M:%S %Z") -> str:
     return local_dt.strftime(fmt)
 
 def get_current_date(time_str, date_str, origin_country, origin_city):
+  """
+  Gets the origin time and date.
+  """
   try:
      # Get zone info object
     zone = ZoneInfo(f"{origin_country}/{origin_city}")
