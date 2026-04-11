@@ -1,26 +1,30 @@
 import discord
 import os
-import asyncio
 from dotenv import load_dotenv
-from discord.ext import commands, tasks
+from discord.ext import commands
 from discord import app_commands
 from typing import Optional
 
 # Helper Imports
 from Commands import Utils, DnD, Quotes
 from Helpers.Utility_helpers import safe_send, with_timeout
-from Classes import DnDSession
 from ErrorHandler import ErrorHandler
 
 # Load env data
 load_dotenv()
+def get_env(key: str) -> int:
+  val = os.getenv(key)
+  if val is None:
+    raise ValueError(f"QuoteBot: Environment Initialisation error: {key} not found/set.")
+  return int(val)
+
 BOT_TOKEN = os.getenv("QBOT_TOKEN")
 if not BOT_TOKEN:
-  raise ValueError("Bot token is not set in environment.")
-CMD_CHANNEL_ID = int(os.getenv("GHIONCK_CMD_CHNL"))
+  raise ValueError("QuoteBot: Environment Initialisation error: bot_token not found/set.")
+CMD_CHANNEL_ID = get_env("GHIONCK_CMD_CHNL")
 GUILD_IDS = [
-  int(os.getenv("DEV_SERVER")),
-  int(os.getenv("GHIONCK"))
+  get_env("DEV_SERVER"),
+  get_env("GHIONCK")
 ]
 
 # Set intents and client
@@ -32,9 +36,9 @@ client = commands.Bot(command_prefix="!", intents=intents)
 async def on_ready():
   print(f'QuoteBot: {client.user} started!')
   for guild_id in GUILD_IDS:
+    guild = discord.Object(id=guild_id)
     try:
       # get guild object
-      guild = discord.Object(id=guild_id)
 
       # give global access to all commands
       client.tree.copy_global_to(guild=guild)
@@ -195,7 +199,7 @@ async def modify_weather(interaction: discord.Interaction, weather : str, new_co
   discord.Object(id=GUILD_IDS[1])
 )
 @with_timeout(timeout=3)
-async def output_raw_weather_json(interaction):
+async def output_raw_weather_json(interaction: discord.Interaction):
   """
   Outputs the weather_probabilities json file as a downloadable
   """
@@ -204,7 +208,7 @@ async def output_raw_weather_json(interaction):
 # Joins vc
 @client.tree.command(name="join", description="Joins the vc the user is in")
 @with_timeout(timeout=3)
-async def join(interaction):
+async def join(interaction: discord.Interaction):
   """
   Bot joins the current vc the user is in.
   """

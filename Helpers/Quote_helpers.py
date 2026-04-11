@@ -1,7 +1,9 @@
+import discord
+from typing import List, Optional
 from random import randint
 
 # Helpers for Quote.py
-def choose_random_message(messages, min_count):
+def choose_random_message(messages: List[discord.Message], min_count: int):
   """
   Choose a random message
   Params:
@@ -29,7 +31,7 @@ def choose_random_message(messages, min_count):
         return 401
       return msg
 
-async def get_last_n_messages(channel, limit, user):
+async def get_last_n_messages(channel: discord.abc.Messageable, limit: Optional[int], user: discord.Member):
   """
   Returns:
     - List of messages sent by user
@@ -39,13 +41,13 @@ async def get_last_n_messages(channel, limit, user):
     if msg.author.id == user.id
   ]
 
-async def get_random_message(interaction, user, limit, min_count):
+async def get_random_message(interaction: discord.Interaction, user: discord.Member, limit: Optional[int], min_count: int):
   """
   Pseudo-random message, discord wrapper
   """
   channel = interaction.channel
   # Get last n messages if user sent it
-  messages = await get_last_n_messages(channel, limit, user)
+  messages = await get_last_n_messages(channel, limit, user) # type: ignore
   if not messages:
     return None
 

@@ -1,7 +1,7 @@
 import discord
+from typing import Optional, Any
 from Helpers.MusicBot_helpers import search_ytdlp_async, play_next_song, clear_queue, ensure_vc
 from Helpers.Utility_helpers import safe_send
-from collections import deque
 from random import randint
 from ErrorHandler import ErrorHandler as eh
 from Classes import GuildState as gs
@@ -9,7 +9,7 @@ from Helpers.Timezone_helper import convert_time
 
 OPUS_PATH = "/opt/homebrew/Cellar/opus/1.6.1/lib/libopus.0.dylib"
 
-async def run_d(interaction, die_num, addon=0):
+async def run_d(interaction: discord.Interaction, die_num: int, addon: Optional[int]=0):
   """
   Rolls a dice.
   Given die_num faces, where die_num == (4 || >= 6), roll a dice where addon is added to the result.
@@ -21,6 +21,9 @@ async def run_d(interaction, die_num, addon=0):
     await safe_send(interaction, f"I do not know what a D{die_num} is. Choose a die that has either 4 or 6 or more faces ya bingus.")
     return
   
+  if not addon:
+    addon = 0
+
   # Roll a randint from 1 to die_num
   roll = randint(1, die_num)
   addon_print = addon
@@ -49,8 +52,8 @@ async def run_join(interaction: discord.Interaction):
     state = gs.get_guild_state(guild_id)
     
     user = interaction.user
-    vc = await ensure_vc(interaction, user)
-    if vc is None:
+    vc = await ensure_vc(interaction, user) # type: ignore
+    if not vc:
       # error
       await safe_send(interaction, f"Error joining vc.")
       return
@@ -68,7 +71,11 @@ async def run_join(interaction: discord.Interaction):
       return
 
     # Store vc in state
-    state.voice_client = vc
+    if isinstance(vc, discord.VoiceClient):
+      state.voice_client = vc
+    else:
+      print(f"[ERROR]: run_join: fatal error: uncaught int return type from ensure_vc")
+      await safe_send(interaction, "Voice client returned an unknown error. Check logs for more info.")
   except Exception as e:
     await interaction.response.send_message(f"Fatal: exception joining vc: {e}")
     err = eh.Error(e, "/join")
@@ -88,29 +95,32 @@ async def run_play(interaction: discord.Interaction, query: str):
   state = gs.get_guild_state(guild_id)
   user = interaction.user
 
-
   # ensure user is in vc, if not, joins
-  voice_client = await ensure_vc(interaction, user, play_cmd=True)
-  if voice_client is None:
+  vc = await ensure_vc(interaction, user, play_cmd=True) # type: ignore
+  if not vc:
     # error
     await safe_send(interaction, f"Error joining vc.")
     return
-  elif voice_client == 401:
+  elif vc == 401:
     # not invc
     await safe_send(interaction, f"User {user} is not in a vc.")
     return
-  elif voice_client == 402:
+  elif vc == 402:
     # user is in stage vc
     await safe_send(interaction, "Cannot join Stage Channels.")
     return
-  elif voice_client == 403:
+  elif vc == 403:
     await safe_send(interaction, "Error joining vc.")
     return
 
-  state.voice_client = voice_client
+  if isinstance(vc, discord.VoiceClient):
+      state.voice_client = vc
+  else:
+    print(f"[ERROR]: run_join: fatal error: uncaught int return type from ensure_vc")
+    await safe_send(interaction, "Voice client returned an unknown error. Check logs for more info.")
 
   # Search
-  ydl_options = {
+  ydl_options: dict[str, Any] = {
     "format": "bestaudio[abr<=96]/bestaudio",
     "noplaylist": True,
     "youtube_include_dash_manifest": False,
@@ -121,10 +131,10 @@ async def run_play(interaction: discord.Interaction, query: str):
     "remote_components": ["ejs:github", "ejs:npm"]
   }
   search_query = "ytsearch1: " + query
-  results = await search_ytdlp_async(search_query, ydl_options, {guild_id: state.queue})
+  results = await search_ytdlp_async(search_query, ydl_options)
 
   # Get the tracks
-  tracks = results.get("entries", [])
+  tracks = results.get("entries", []) # type: ignore
 
   # No tracks found
   if tracks is None:
@@ -148,13 +158,13 @@ async def run_play(interaction: discord.Interaction, query: str):
   state.queue.append((audio_url, title))
 
   # if currently playing or paused, send notifiaction that the song is added to queue.
-  if voice_client.is_playing() or voice_client.is_paused():
+  if not isinstance(vc, int) and (vc.is_playing() or vc.is_paused()):
     await safe_send(interaction, f"Added to queue: **{title}**.")
   else:
     # otherwise, play the song now.
     await play_next_song(state, interaction)
   
-async def run_skip(interaction):
+async def run_skip(interaction: discord.Interaction) -> None:
   """
   Skips the currently playing song.
   """
@@ -166,24 +176,25 @@ async def run_skip(interaction):
   state.voice_client.stop() # triggers playnextsong
   await safe_send(interaction, "Skipping current song...")
 
-async def run_pause(interaction):
+async def run_pause(interaction: discord.Interaction) -> None:
   """
   Pauses the playing song.
   """
   guild_id = str(interaction.guild_id)
   state = gs.get_guild_state(guild_id)
+  vc: discord.VoiceClient | None = state.voice_client
 
   # If bot is in vc
-  if state.voice_client is None:
+  if not vc:
     return await safe_send(interaction, "I am not in a voice channel, invite me now.")
   
   # If not playing
-  if not state.voice_client.is_playing():
+  if not vc.is_playing():
     return await safe_send(interaction, "No songs are playing ya bingus.")
   
   try:
     # Pause the track
-    state.voice_client.pause()
+    vc.pause()
     await safe_send(interaction, "Song has been paused.")
   except Exception as e:
     print(f"[ERROR]: run_pause: {e}")
@@ -191,7 +202,7 @@ async def run_pause(interaction):
     err = eh.Error(e, "/pause")
     eh.report_error(err)
 
-async def run_resume(interaction):
+async def run_resume(interaction: discord.Interaction):
   """
   Resumes the paused song.
   """
@@ -216,16 +227,16 @@ async def run_resume(interaction):
     err = eh.Error(e, "/resume")
     eh.report_error(err)
 
-async def run_leave(interaction):
+async def run_leave(interaction: discord.Interaction) -> None:
   """
   Leaves the VC.
   Clears the queue.
   """
   guild_id = str(interaction.guild_id)
-  state = gs.get_guild_state(guild_id)
+  state: gs.GuildState = gs.get_guild_state(guild_id)
 
   # not in vc or connected
-  if not state or not state.voice_client.is_connected():
+  if not state or not state.voice_client or not state.voice_client.is_connected():
     return await safe_send(interaction, "Not in vc.")
   await clear_queue(interaction, state)
 
@@ -237,7 +248,7 @@ async def run_leave(interaction):
     err = eh.Error(e, "/stop")
     eh.report_error(err)
 
-async def run_repeat(interaction):
+async def run_repeat(interaction: discord.Interaction):
   """
   Loops the current song if not looping, if looping already, stop looping. Flip flop
   Sets the guild state's repeat field to true.
@@ -265,7 +276,7 @@ async def run_list_queue(interaction: discord.Interaction):
     return
   
   # empty queue
-  if state.queue is None and not state.current:
+  if not state.queue and not state.current:
     await interaction.followup.send("Queue is empty.")
     return
   
@@ -300,13 +311,13 @@ async def run_timezone_converter(
 
     # Error codes
     if dt_origin == 401:
-      await safe_send(interaction, dt_target)
+      await safe_send(interaction, dt_target) # type: ignore
       return
     elif dt_origin == 402:
-      await safe_send(interaction, dt_target)
+      await safe_send(interaction, dt_target) # type: ignore
       return
     elif dt_origin == 400 and dt_target == 400:
-      await safe_send(interaction, dt_target)
+      await safe_send(interaction, dt_target) # type: ignore
       return
     elif dt_origin == 403 and dt_target == 403:
       await safe_send(interaction, 

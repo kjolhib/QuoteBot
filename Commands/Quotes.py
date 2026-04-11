@@ -1,10 +1,11 @@
-import random
+import discord
+from typing import Optional
 from Helpers.Timezone_helper import format_AEST
 from Helpers.Utility_helpers import safe_send
 from Helpers.Quote_helpers import *
 from ErrorHandler import ErrorHandler as eh
 
-async def run_repeat(interaction, string):
+async def run_repeat(interaction: discord.Interaction, string: str):
   """
   Repeats the string specified by the user.
   Used to debug and check that the bot actually connected and responded to the user. 
@@ -17,7 +18,7 @@ async def run_repeat(interaction, string):
     err = eh.Error(e, "/repeat_after_me")
     eh.report_error(err)
 
-async def rand(interaction, user, limit, min_count):
+async def rand(interaction: discord.Interaction, user: discord.Member, limit: Optional[int], min_count: Optional[int]):
   """
   Sends a random single text user sent in this server.
   Quotes the user.
@@ -32,6 +33,9 @@ async def rand(interaction, user, limit, min_count):
   """
   try:
     # Don't try to quote itself
+    if not interaction.client.user:
+      print(f"Quotes/rand: interaction.client.user is None: interaction: {interaction}")
+      return await safe_send(interaction, "An error occurred. Check logs for more info.")
     if user.id == interaction.client.user.id:
       return await safe_send(interaction, "Stop trying to quote me, I'm above your whimsical interactions!")
 

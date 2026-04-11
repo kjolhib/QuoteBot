@@ -1,6 +1,7 @@
 import datetime
 import random
 import discord
+from typing import Optional
 from Helpers.Timezone_helper import format_AEST
 from Helpers.Utility_helpers import safe_send, safe_send_embed, safe_send_file
 from Helpers.DnD_helpers import *
@@ -46,7 +47,7 @@ async def run_end(interaction: discord.Interaction):
   state.dnd_session = None
   await safe_send(interaction, f"Session ended after {human_readable_time} seconds.")
 
-async def run_new_dice_instance(interaction, scenario, die_num):
+async def run_new_dice_instance(interaction: discord.Interaction, scenario: str, die_num: int):
   """
   Creates a new dice instance.
   If not active session, ignore.
@@ -80,7 +81,7 @@ async def run_new_dice_instance(interaction, scenario, die_num):
     err = eh.Error(e, "/skip")
     eh.report_error(err)
 
-async def run_scenario_dice(interaction, scenario, addon=0):
+async def run_scenario_dice(interaction: discord.Interaction, scenario: str, addon: Optional[int]=0):
   """
   Given a specific DnD die name, roll it, with optional addon
   Params:
@@ -94,15 +95,13 @@ async def run_scenario_dice(interaction, scenario, addon=0):
 
   # Check that the scenario exists
   curr_sesh_dies = state.dnd_session.current_session_dies
-  found_dice = False
-  for dice in curr_sesh_dies:
-    if (dice.scenario == scenario):
-      found_dice = True
-      current_dice : d.Dice = dice
-      break
+  current_dice = next( # if a dice with scenario exists, set it, otherwise None
+    (dice for dice in curr_sesh_dies if dice.scenario == scenario),
+    None
+  )
 
   # dice not found
-  if not found_dice:
+  if not current_dice:
     await safe_send(interaction, f"No die of scenario **{scenario}** found. Please create one first using /new_dice")
     return
 
@@ -112,6 +111,7 @@ async def run_scenario_dice(interaction, scenario, addon=0):
     await safe_send(interaction, f"Error simulating the dice roll... Check logs for details.")
     err = eh.Error(e, "/s_dice/simulate_weighted_rolls")
     eh.report_error(err)
+    return
 
   # addon print msg
   # this took longer than i'd like to admit. 2am coding is such a vibe
@@ -128,7 +128,7 @@ async def run_scenario_dice(interaction, scenario, addon=0):
 
   await safe_send(interaction, print_msg)
 
-async def run_list_dice(interaction):
+async def run_list_dice(interaction: discord.Interaction):
   """
   Lists the scenario dice that exist.
   """
@@ -150,7 +150,7 @@ async def run_list_dice(interaction):
 
   await safe_send(interaction, print_msg)
 
-async def run_generate_weather(interaction):
+async def run_generate_weather(interaction: discord.Interaction):
   """
   Generates a new weather from a pool.
   The pool is found in /weather_probabilities.json.
@@ -159,8 +159,8 @@ async def run_generate_weather(interaction):
   # Load weather. from DnD_helpers.py
   data = load_weather()
 
-  weights = []
-  weathers = []
+  weights: list[int] = []
+  weathers: list[str] = []
 
   # Collect the information from the json, and weight each weather's probability by their counts.
   # More counts = less probability of being chosen.
@@ -174,7 +174,7 @@ async def run_generate_weather(interaction):
   save_weather(data)
   await safe_send(interaction, f"The weather you have rolled is **{chosen}**! is that good?")
 
-async def run_weather_stats(interaction):
+async def run_weather_stats(interaction: discord.Interaction):
   """
   Lists as an standard embed, the json file.
   Formatted as:
@@ -190,14 +190,14 @@ async def run_weather_stats(interaction):
   
   await safe_send_embed(interaction, embeds=embed)
 
-async def run_clear_weather_dict(interaction):
+async def run_clear_weather_dict(interaction: discord.Interaction):
   """
   Resets the weather to default, defined as INIT_DATA in DnD_helpers.py
   """
   reset_weather_to_default()
   await safe_send(interaction, "Weather data cleared.")
 
-async def run_add_new_weather(interaction, weather):
+async def run_add_new_weather(interaction: discord.Interaction, weather: str):
   """
   Adds a new weather to weather_probabilities.json file.
   Persists across sessions.
@@ -210,7 +210,7 @@ async def run_add_new_weather(interaction, weather):
   save_weather(data)
   await safe_send(interaction, f"Weather '{weather}' has been added.")
 
-async def run_remove_weather(interaction, weather):
+async def run_remove_weather(interaction: discord.Interaction, weather: str):
   """
   Removes weather from weather_probabilities.json file.
   Does NOT modify INIT_DATA
@@ -228,11 +228,12 @@ async def run_remove_weather(interaction, weather):
     del data[weather]
     save_weather(data)
   except Exception as e:
+    print(f"[ERROR]: remove_weather: {e}")
     await safe_send(interaction, f"Error removing {weather}: check logs for more details.")
     return
   await safe_send(interaction, f"Weather {weather} removed with count {count}.")
 
-async def run_modify_weather_counts(interaction, weather, new_count):
+async def run_modify_weather_counts(interaction: discord.Interaction, weather: str, new_count: int):
   """
   Modify the count of a given weather.
   Params:
@@ -256,7 +257,7 @@ async def run_modify_weather_counts(interaction, weather, new_count):
   await safe_send(interaction, f"Weather {weather} has been modified to have count {new_count}. Previous count was {old_count}")
   return
 
-async def run_output_json_file(interaction):
+async def run_output_json_file(interaction: discord.Interaction) -> None:
   """
   Outputs the raw JSON file for storage if needed.
   """

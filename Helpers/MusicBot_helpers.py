@@ -1,12 +1,13 @@
 import yt_dlp
 import asyncio
 import discord
+from typing import Any
 from ErrorHandler import ErrorHandler as eh
 from .Utility_helpers import safe_send
 from Classes.GuildState import GuildState
 
 # Helpers for the music bot features in QuoteBot
-async def search_ytdlp_async(query, ydl_opts):
+async def search_ytdlp_async(query: str, ydl_opts: dict[str, Any]):
   """
   Asynchronously runs the searcher for seamlessness.
   Searches for the query.
@@ -17,14 +18,15 @@ async def search_ytdlp_async(query, ydl_opts):
   except Exception as e:
     err = eh.Error(e, "/play/search_ytdlp_async")
     eh.report_error(err)
+    return
 
 # Helper for search_ytdlp_async
-def _extract(query, ydl_opts):
+def _extract(query: str, ydl_opts: dict[str, Any]):
   """
   Extracts the youtube query information
   """
   try:
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl: # type: ignore
       return ydl.extract_info(query, download=False)
   except Exception as e:
     err = eh.Error(e, "/play/_extract")
@@ -43,7 +45,7 @@ async def play_next_song(state: GuildState, interaction: discord.Interaction):
     "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
     "options": "-vn -c:a libopus -b:a 96k",
   }
-  def after_play(error):
+  def after_play(error: Any):
     """
     Schedules the next song
     """
@@ -52,9 +54,10 @@ async def play_next_song(state: GuildState, interaction: discord.Interaction):
       err = eh.Error(error, "/play: play_next_song")
       eh.report_error(err)
     # schedule next song
-    asyncio.run_coroutine_threadsafe(
-      play_next_song(state, interaction), state.voice_client.loop
-    )
+    if state.voice_client:
+      asyncio.run_coroutine_threadsafe(
+        play_next_song(state, interaction), state.voice_client.loop
+      )
   
   if state.repeat and state.current:
     # Loop current song
@@ -71,7 +74,7 @@ async def play_next_song(state: GuildState, interaction: discord.Interaction):
     state.current = None
     return
   
-  source = discord.FFmpegOpusAudio(audio_url, **ffmpeg_options)
+  source = discord.FFmpegOpusAudio(audio_url, **ffmpeg_options) # type: ignore
   
   # play song
   state.voice_client.play(source, after=after_play)
@@ -89,14 +92,14 @@ async def clear_queue(interaction: discord.Interaction, state: GuildState):
     state.current = None
     state.repeat = False
 
-    if state.voice_client.is_playing() or state.voice_client.is_paused():
+    if state.voice_client and (state.voice_client.is_playing() or state.voice_client.is_paused()):
       state.voice_client.stop()
   except Exception as e:
     err = eh.Error(e, "/stop/clear_queue")
     eh.report_error(err)
 
 # Check if bot is in vc, if not join,
-async def bot_join_vc(interaction, user_channel, user_name, play_cmd):
+async def bot_join_vc(interaction: discord.Interaction, user_channel: discord.VoiceChannel, user_name: str, play_cmd: bool):
   """
   Checks if the bot is already in vc.
   If not, joins.
@@ -107,12 +110,12 @@ async def bot_join_vc(interaction, user_channel, user_name, play_cmd):
     - play_cmd: whether or not this was called by the /play command.
   """
   # Check if bot is already in a VC in this guild
-  bot_vc = interaction.guild.voice_client
+  bot_vc = interaction.guild.voice_client # type: ignore
   try:
     if bot_vc:
       if bot_vc.channel != user_channel:
         # bot already in channel, move
-        await bot_vc.move_to(user_channel)
+        await bot_vc.move_to(user_channel) # type: ignore
         await safe_send(interaction, f"By the tyranny of {user_name}, I have been moved to {user_channel}.")
       elif not play_cmd:
         await safe_send(interaction, "I am already in this channel!")
@@ -130,7 +133,7 @@ async def bot_join_vc(interaction, user_channel, user_name, play_cmd):
     return None
 
 # Ensures that the bot is in vc
-async def ensure_vc(interaction, user, play_cmd=False) -> discord.VoiceClient:
+async def ensure_vc(interaction: discord.Interaction, user: discord.Member, play_cmd: bool=False) -> discord.VoiceClient | int:
   """
   Ensures user is in VC, bot joins the vc if they are.
   Params:
@@ -154,7 +157,7 @@ async def ensure_vc(interaction, user, play_cmd=False) -> discord.VoiceClient:
     return 402
 
   try:
-    return await bot_join_vc(interaction, user_channel, user_name, play_cmd)
+    return await bot_join_vc(interaction, user_channel, user_name, play_cmd) # type: ignore
   except Exception as e:
     print(f"[PLAY]: error joining vc: {e}")
     return 403
