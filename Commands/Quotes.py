@@ -1,8 +1,8 @@
 import discord
 from typing import Optional
-from Helpers.Timezone_helper import format_AEST
-from Helpers.Utility_helpers import safe_send
-from Helpers.Quote_helpers import *
+from Helpers.TimezoneHelpers import format_AEST
+from Helpers.UtilityHelpers import safe_send
+from Helpers.QuoteHelpers import *
 from ErrorHandler import LTMinCountError
 from ErrorHandler.ErrorHandler import report_error
 

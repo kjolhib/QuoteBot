@@ -7,7 +7,7 @@ from typing import Optional
 
 # Helper Imports
 from Commands import Utils, DnD, Quotes
-from Helpers.Utility_helpers import with_timeout
+from Helpers.UtilityHelpers import with_timeout
 from ErrorHandler.ErrorHandler import configure_logging, report_error
 
 # Init error logging

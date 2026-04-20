@@ -3,9 +3,9 @@ import random
 import discord
 from typing import Optional
 
-from Helpers.Timezone_helper import format_AEST
-from Helpers.Utility_helpers import safe_send, safe_send_embed, safe_send_file
-from Helpers.DnD_helpers import *
+from Helpers.TimezoneHelpers import format_AEST
+from Helpers.UtilityHelpers import safe_send, safe_send_embed, safe_send_file
+from Helpers.DnDHelpers import *
 from ErrorHandler.ErrorHandler import report_error
 from Classes import GuildState as gs
 from Classes import DnDSession as dsesh

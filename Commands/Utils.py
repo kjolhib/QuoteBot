@@ -3,8 +3,8 @@ from typing import Optional, Any
 from random import randint
 
 # Helper imports
-from Helpers.MusicBot_helpers import search_ytdlp_async, play_next_song, clear_queue, ensure_vc
-from Helpers.Utility_helpers import bot_require_voice_client, safe_send
+from Helpers.MusicBotHelpers import search_first_track, play_next_song, clear_queue, ensure_vc
+from Helpers.UtilityHelpers import bot_require_voice_client, safe_send
 from ErrorHandler import (ClearQueueError,
                           JoinVcError,
                           DateFormatError,
@@ -13,7 +13,7 @@ from ErrorHandler import (ClearQueueError,
                           UserNotInVcError)
 from ErrorHandler.ErrorHandler import report_error
 from Classes import GuildState as gs
-from Helpers.Timezone_helper import convert_time
+from Helpers.TimezoneHelpers import convert_time
 
 # OPUS_PATH = "/opt/homebrew/Cellar/opus/1.6.1/lib/libopus.0.dylib"
 
@@ -115,7 +115,7 @@ async def run_play(interaction: discord.Interaction, query: str):
     },
     "remote_components": ["ejs:github", "ejs:npm"]
   }
-  track = await _search_first_track(query, ydl_options)
+  track = await search_first_track(query, ydl_options)
   if not track:
     await safe_send(interaction, f"No results found.")
     return
@@ -331,19 +331,3 @@ async def _ensure_voice(interaction: discord.Interaction, play_cmd: bool=False) 
   if not isinstance(vc, discord.VoiceClient):
     raise JoinVcError.JoinVcError("Voice client returned an unknown error.")
   return vc
-
-async def _search_first_track(query: str, ydl_options: dict[str, Any]) -> tuple[str, str] | None:
-  """
-  Searches the query and returns the first track's audio url and title.
-  Returns:
-    - (audio_url, title) if found
-    - None if not found or error
-  """
-  serach_query = "ytsearch1: " + query
-  results = await search_ytdlp_async(serach_query, ydl_options)
-  tracks = results.get("entries", [])
-  if not tracks:
-    return None
-  
-  first = tracks[0]
-  return first["url"], first.get("title", "Untitled")
