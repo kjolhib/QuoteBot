@@ -93,17 +93,3 @@ def bot_require_voice_client(func: Callable[P, Awaitable[R]]) -> Callable[P, Awa
       return #type: ignore
     return await func(*args, **kwargs) # type: ignore
   return wrapper
-
-# def display_table(interaction, header, body):
-#   """
-#   Using table2ascii library.
-#   Given:
-#   - header: [h1, h2, ...]
-#   - body: [
-#             [b1, b2, ...],
-#             [b1, b2, ...],
-#             ...
-#           ]
-#   Return a table
-#   """
-#   return t2a(header=header, body=body, style=PresetStyle.thin_compact)

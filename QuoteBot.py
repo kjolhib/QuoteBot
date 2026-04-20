@@ -397,6 +397,6 @@ if __name__ == "__main__":
     print("QuoteBot: Starting bot...")
     client.run(BOT_TOKEN)
   except Exception as e:
-    report_error("fatal error starting bot (are you connected to the internet?): ", e)
+    report_error("error starting bot (are you connected to the internet?): ", e)
     print(f"[ERROR]: run bot: Are you connected to the internet?")
     print(e)
