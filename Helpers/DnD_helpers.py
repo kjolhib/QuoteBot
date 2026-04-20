@@ -26,7 +26,7 @@ def load_weather():
   with open(FILE_NAME, "r") as f:
     return json.load(f)
 
-def save_weather(data):
+def save_weather(data: dict[str, int]):
   """
   Saves the weather data after session end.
   :params data: the dictionary data to be saved
@@ -40,11 +40,8 @@ def get_weather_path():
   """
   return FILE_NAME
 
-def reset_weather_to_default():
+def get_init_data():
   """
-  Resets weather_probabilities.json file to INIT_DATA
+  Returns the initial weather data
   """
-  try:
-    save_weather(INIT_DATA)
-  except Exception as e:
-    print(f"reset_weather_to_default: Failed to load weather: {e}")
+  return INIT_DATA

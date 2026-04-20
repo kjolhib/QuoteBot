@@ -1,36 +1,26 @@
-import time
+# ErrorHandler.py
 import logging
-from .Error import Error
 from logging.handlers import RotatingFileHandler
 
 LOG_PATH = "QuoteBot_errors.log"
+_logger = logging.getLogger("QuoteBot")
 
-# Keep last 5 logs, max 1mb size
-handler = RotatingFileHandler (
-  LOG_PATH,
-  maxBytes=1_000_000,
-  backupCount=5
-)
+def configure_logging():
+    """Call once at bot startup."""
+    handler = RotatingFileHandler(LOG_PATH, maxBytes=1_000_000, backupCount=5)
+    handler.setFormatter(logging.Formatter(
+        "%(asctime)s [%(name)s %(filename)s:%(lineno)d] %(levelname)s: %(message)s"
+    ))
+    _logger.setLevel(logging.ERROR)
+    _logger.addHandler(handler)
 
-logging.basicConfig(
-  level=logging.ERROR,
-  format="%(asctime)s [%(name)s %(filename)s:%(lineno)d] %(levelname)s: %(message)s",
-  handlers=[handler]
-)
-
-def log_error(error: Error):
-  print(error)
-  logging.error("[%s] %s", error.func_name.upper(), error.error_msg, stacklevel=3)
-
-def report_exception(f_name: str):
-  try:
-    logging.exception(f"[ERROR]: traceback: [{f_name.upper()}] crashed")
-  except Exception as e:
-    print(f"FATAL ERROR: report_exception failed: {e}")
-
-def report_error(error: Error):
-  try:
-    print(f"[ERROR: {error.time}]: [{(error.func_name).upper()}]: {error.error_msg}")
-    log_error(error)
-  except Exception as e:
-    return print(f"[FATAL ERROR: {time.time()}]: report_error: {e}")
+def report_error(context: str, exc: Exception | None = None, extra_info: str | None = None):
+    """
+    Log an error with optional exception info.
+    
+    context: human-readable label, e.g. the function/command name
+    exc:     the caught exception, if any (enables traceback logging)
+    """
+    msg = f"[{context.upper()}]" + (f": {extra_info}" if extra_info else ": No extra info available.")
+    _logger.error(msg, exc_info=exc)
+    print(f"[ERROR]: {context}, {extra_info}: {exc if exc else 'An unknown error occurred.'}")

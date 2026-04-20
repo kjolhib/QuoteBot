@@ -2,7 +2,9 @@ import yt_dlp
 import asyncio
 import discord
 from typing import Any
-from ErrorHandler import ErrorHandler as eh
+from ErrorHandler import JoinVcError
+from ErrorHandler import ClearQueueError, UserNotInVcError, UserInStageVcError
+from ErrorHandler.ErrorHandler import report_error
 from .Utility_helpers import safe_send
 from Classes.GuildState import GuildState
 
@@ -12,25 +14,16 @@ async def search_ytdlp_async(query: str, ydl_opts: dict[str, Any]):
   Asynchronously runs the searcher for seamlessness.
   Searches for the query.
   """
-  try:
-    loop = asyncio.get_running_loop()
-    return await loop.run_in_executor(None, lambda: _extract(query, ydl_opts))
-  except Exception as e:
-    err = eh.Error(e, "/play/search_ytdlp_async")
-    eh.report_error(err)
-    return
+  loop = asyncio.get_running_loop()
+  return await loop.run_in_executor(None, lambda: _extract(query, ydl_opts))
 
 # Helper for search_ytdlp_async
 def _extract(query: str, ydl_opts: dict[str, Any]):
   """
   Extracts the youtube query information
   """
-  try:
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl: # type: ignore
-      return ydl.extract_info(query, download=False)
-  except Exception as e:
-    err = eh.Error(e, "/play/_extract")
-    eh.report_error(err)
+  with yt_dlp.YoutubeDL(ydl_opts) as ydl: # type: ignore
+    return ydl.extract_info(query, download=False)
   
 async def play_next_song(state: GuildState, interaction: discord.Interaction):
   """
@@ -50,9 +43,8 @@ async def play_next_song(state: GuildState, interaction: discord.Interaction):
     Schedules the next song
     """
     if error:
-      print(f"[ERROR] playing {title}: {error}")
-      err = eh.Error(error, "/play: play_next_song")
-      eh.report_error(err)
+      # If any error occurs here, report it, but continue playing the queue
+      report_error(f"after_play", error, f"Error in after_play: {error}")
     # schedule next song
     if state.voice_client:
       asyncio.run_coroutine_threadsafe(
@@ -82,22 +74,6 @@ async def play_next_song(state: GuildState, interaction: discord.Interaction):
   # notify channels asynchornously
   asyncio.create_task(safe_send(interaction, now_msg))
 
-async def clear_queue(interaction: discord.Interaction, state: GuildState):
-  """
-  Clears the queue
-  """
-  try:
-    # Clear queue
-    state.queue.clear()
-    state.current = None
-    state.repeat = False
-
-    if state.voice_client and (state.voice_client.is_playing() or state.voice_client.is_paused()):
-      state.voice_client.stop()
-  except Exception as e:
-    err = eh.Error(e, "/stop/clear_queue")
-    eh.report_error(err)
-
 # Check if bot is in vc, if not join,
 async def bot_join_vc(interaction: discord.Interaction, user_channel: discord.VoiceChannel, user_name: str, play_cmd: bool):
   """
@@ -111,26 +87,20 @@ async def bot_join_vc(interaction: discord.Interaction, user_channel: discord.Vo
   """
   # Check if bot is already in a VC in this guild
   bot_vc = interaction.guild.voice_client # type: ignore
-  try:
-    if bot_vc:
-      if bot_vc.channel != user_channel:
-        # bot already in channel, move
-        await bot_vc.move_to(user_channel) # type: ignore
-        await safe_send(interaction, f"By the tyranny of {user_name}, I have been moved to {user_channel}.")
-      elif not play_cmd:
-        await safe_send(interaction, "I am already in this channel!")
-      return bot_vc
-    else:
-      # not in channel. connect
-      print(f"[PLAY]: ensure_vc: Not in channel, connecting to {user_channel}")
-      bot_vc = await user_channel.connect(timeout=30)
-      await safe_send(interaction, f"Heed my arrival in {user_channel}, worm.")
-      return bot_vc
-  except Exception as e:
-    await safe_send(interaction, f"Fatal: error: /join: failed to join vc: {e}")
-    err = eh.Error(e, "/play/ensure_vc")
-    eh.report_error(err)
-    return None
+  if bot_vc:
+    if bot_vc.channel != user_channel:
+      # bot already in channel, move
+      await bot_vc.move_to(user_channel) # type: ignore
+      await safe_send(interaction, f"By the tyranny of {user_name}, I have been moved to {user_channel}.")
+    elif not play_cmd:
+      await safe_send(interaction, "I am already in this channel!")
+    return bot_vc
+  else:
+    # not in channel. connect
+    print(f"[PLAY]: ensure_vc: Not in channel, connecting to {user_channel}")
+    bot_vc = await user_channel.connect(timeout=5)
+    await safe_send(interaction, f"Heed my arrival in {user_channel}, worm.")
+    return bot_vc
 
 # Ensures that the bot is in vc
 async def ensure_vc(interaction: discord.Interaction, user: discord.Member, play_cmd: bool=False) -> discord.VoiceClient | int:
@@ -139,26 +109,37 @@ async def ensure_vc(interaction: discord.Interaction, user: discord.Member, play
   Params:
     - user: user that requested the bot to join vc
     - play_cmd: If called by play_cmd, then we play a song, if not, just join
-  Returns:
-    - 401: User is not in VC
-    - 402: User is in a stage vc
-    - 403: An error joining vc. Above checks passed.
   """
   user_name = user.mention
   # user must be in vc
   if not user.voice or not user.voice.channel:
     print("[PLAY]: ensure_vc: user is not in a vc.")
-    return 401
+    raise UserNotInVcError.UserNotInVcError("User is not in a vc.")
 
-  user_channel = user.voice.channel
   # Check connections
+  user_channel = user.voice.channel
   if isinstance(user_channel, discord.StageChannel):
     print("[PLAY]: ensure_vc: user is in a stage channel vc.")
-    return 402
+    raise UserInStageVcError.UserInStageVcError("User is in a stage vc.")
 
   try:
     return await bot_join_vc(interaction, user_channel, user_name, play_cmd) # type: ignore
+  except JoinVcError.JoinVcError as jve:
+    raise JoinVcError.JoinVcError(f"Error clearing queue: {jve}")
+  
+async def clear_queue(state: GuildState):
+  """
+  Clears the queue
+  """
+  try:
+    # Clear queue
+    if len(state.queue) > 1:
+      state.queue.clear()
+      state.current = None
+      state.repeat = False
+
+      if state.voice_client and (state.voice_client.is_playing() or state.voice_client.is_paused()):
+        state.voice_client.stop()
   except Exception as e:
-    print(f"[PLAY]: error joining vc: {e}")
-    return 403
+    raise ClearQueueError.ClearQueueError(f"Error clearing queue: {e}")
   

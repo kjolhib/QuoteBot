@@ -2,6 +2,8 @@ import discord
 from typing import List, Optional
 from random import randint
 
+from ErrorHandler.LTMinCountError import LTMinCountError
+
 # Helpers for Quote.py
 def choose_random_message(messages: List[discord.Message], min_count: int):
   """
@@ -27,8 +29,8 @@ def choose_random_message(messages: List[discord.Message], min_count: int):
       print(f"[RAND] Found message, number of messages pooled: {len(messages)}")
       if len(messages) < min_count:
         # Too little messages sent
-        print(f"Too few messages sent by user, contents are as follows: \n{msg.content}")
-        return 401
+        print(f"[choose_random_message]: Too few messages sent by user, contents are as follows: \n{msg.content}")
+        raise LTMinCountError("Too few messages sent by user.")
       return msg
 
 async def get_last_n_messages(channel: discord.abc.Messageable, limit: Optional[int], user: discord.Member):
@@ -43,7 +45,11 @@ async def get_last_n_messages(channel: discord.abc.Messageable, limit: Optional[
 
 async def get_random_message(interaction: discord.Interaction, user: discord.Member, limit: Optional[int], min_count: int):
   """
-  Pseudo-random message, discord wrapper
+  Pseudo-random message.
+  Returns:
+    - None: no messages found
+    - 401: messages found but less than min_count
+    - message dict if found
   """
   channel = interaction.channel
   # Get last n messages if user sent it

@@ -3,22 +3,24 @@ from typing import Optional
 from Helpers.Timezone_helper import format_AEST
 from Helpers.Utility_helpers import safe_send
 from Helpers.Quote_helpers import *
-from ErrorHandler import ErrorHandler as eh
+from ErrorHandler import LTMinCountError
+from ErrorHandler.ErrorHandler import report_error
 
 async def run_repeat(interaction: discord.Interaction, string: str):
   """
   Repeats the string specified by the user.
   Used to debug and check that the bot actually connected and responded to the user. 
   Essentially useless command.
+  Returns:
+    - string that the user inputted
   """
   try:
     await safe_send(interaction, f'{string}')
   except Exception as e:
-    await safe_send(interaction, f"[ERROR]: repeat_after_me: error sending message: {e}")
-    err = eh.Error(e, "/repeat_after_me")
-    eh.report_error(err)
+    await safe_send(interaction, f"Error sending message. Check logs for more details.")
+    report_error(f"repeat_after_me", e, f"{string}")
 
-async def rand(interaction: discord.Interaction, user: discord.Member, limit: Optional[int], min_count: Optional[int]):
+async def run_rand(interaction: discord.Interaction, user: discord.Member, limit: Optional[int], min_count: Optional[int]):
   """
   Sends a random single text user sent in this server.
   Quotes the user.
@@ -48,13 +50,11 @@ async def rand(interaction: discord.Interaction, user: discord.Member, limit: Op
     if not msg:
       print(f"No messages sent: {limit}")
       return await safe_send(interaction, f"This user has not sent any messages in the last {limit} messages, disappointing...")
-    elif msg == 401:
-      return await safe_send(interaction, f"{user.name} has sent less than 5 messages recently!")
 
     timestamp = format_AEST(msg.created_at, "%Y-%m-%d %H:%M:%S")
     return await safe_send(interaction, '"' + msg.content + '"' + " - " + user.name + " (" + timestamp + ")")
+  except LTMinCountError:
+    await safe_send(interaction, f"{user.name} has sent less than {min_count} messages recently!")
   except Exception as e:
-    print(f"[ERROR]: random_msg: error initialising: {e}")
     await safe_send(interaction, f"An error occurred. Try again later or check logs.")
-    err = eh.Error(e, "/random_msg")
-    eh.report_error(err)
+    report_error(f"[random_msg]", e, f"info: {user}, limit: {limit}, min_count: {min_count}")

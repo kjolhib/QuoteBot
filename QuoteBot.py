@@ -7,8 +7,11 @@ from typing import Optional
 
 # Helper Imports
 from Commands import Utils, DnD, Quotes
-from Helpers.Utility_helpers import safe_send, with_timeout
-from ErrorHandler import ErrorHandler
+from Helpers.Utility_helpers import with_timeout
+from ErrorHandler.ErrorHandler import configure_logging, report_error
+
+# Init error logging
+configure_logging()
 
 # Load env data
 load_dotenv()
@@ -18,6 +21,7 @@ def get_env(key: str) -> int:
     raise ValueError(f"QuoteBot: Environment Initialisation error: {key} not found/set.")
   return int(val)
 
+# Load tokens
 BOT_TOKEN = os.getenv("QBOT_TOKEN")
 if not BOT_TOKEN:
   raise ValueError("QuoteBot: Environment Initialisation error: bot_token not found/set.")
@@ -38,31 +42,19 @@ async def on_ready():
   for guild_id in GUILD_IDS:
     guild = discord.Object(id=guild_id)
     try:
-      # get guild object
-
-      # give global access to all commands
+      # Give global access to most commands
+      # Note. Some commands are specifically tailored for private use.
+      # For the most part, this is because of the .json data I have stored on my local computer.
+      # Don't want it messed up by other people from different servers.
       client.tree.copy_global_to(guild=guild)
       synced = await client.tree.sync(guild=guild)
       print(f"[SYNC] Synced {len(synced)} commands to guild {guild_id}")
     except Exception as e:
-      err = ErrorHandler.Error(f"syncing commands to guild {guild}: {e}", "sync")
-      ErrorHandler.report_error(err)
-      # print(f"[ERROR] syncing commands to guild {guild}: {e}")
+      report_error(f"error syncing commands to guild {guild_id}", e)
+      print(f"[ERROR] syncing commands to guild {guild_id}: {e}")
     # await channel.send("QuoteBot is now online.")
 
 # TODO: implement a loop that checks session active timer
-# Loop time active
-# @tasks.loop(minutes=MAX_SESSION_TIME_MINS, count=1)
-# async def break_reminder():
-#   channel = client.get_channel(CMD_CHANNEL_ID)
-#   await channel.send(f"Take a break! You've been active for {MAX_SESSION_TIME_MINS} minutes!")
-
-# Only loop if sessio is active
-# @break_reminder.before_loop
-# async def before__break_reminder():
-#   if session.is_active:
-#     await break_reminder()
-
 
 @client.tree.command(name="start", description="Starts a DnD session")
 @with_timeout(timeout=1)
@@ -82,35 +74,38 @@ async def end(interaction: discord.Interaction):
   """
   await DnD.run_end(interaction)
 
-@client.tree.command(name="new_dice", description="Creates a new dice instance with a scenario, with its own weights (advanced dnd shi)")
-@app_commands.describe(scenario="What do you want to use this dice for?")
-@app_commands.describe(faces="The number of faces this dice has")
+@client.tree.command(name="new_die", description="Creates a new die instance with a scenario, with its own weights (dnd shi)")
+@app_commands.describe(scenario="What do you want to use this die for?")
+@app_commands.describe(faces="The number of faces this die has")
 @with_timeout(timeout=3)
-async def new_dice(interaction: discord.Interaction, scenario: str, faces: int):
+async def new_die(interaction: discord.Interaction, scenario: str, faces: int):
   """
-  Creates a new dice instance named scenario with die_num number of faces
+  Creates a new die instance named scenario with die_num number of faces
   Params:
-    - scenario: the scenario the dice would be used in, is weighted
-    - die_num: the number of faces this dice has. num != 4 and num > 5
+    - scenario: the scenario the die would be used in, is weighted
+    - die_num: the number of faces this die has. num != 4 and num > 5
   """
-  await DnD.run_new_dice_instance(interaction, scenario, faces)
+  await DnD.run_new_die_instance(interaction, scenario, faces)
 
-@client.tree.command(name="instance_dice", description="Roll an existing scenario dice")
-@app_commands.describe(scenario="The dice you want to roll")
-@app_commands.describe(addon="Adds or subtracts this result from the dice result")
+@client.tree.command(name="instance_die", description="Roll an existing scenario die")
+@app_commands.describe(scenario="The die you want to roll")
+@app_commands.describe(addon="Adds or subtracts this result from the die result")
 @with_timeout(timeout=2)
 async def s_dice(interaction: discord.Interaction, scenario: str, addon: Optional[int]):
   """
-  Takes a scnenario, and rolls the corresponding scenario's dice
-  :params scneario: the scenario that dictates the dice
+  Takes a scnenario, and rolls the corresponding scenario's die
+  Params:
+    - scenario: the scenario that dictates the die
   """
-  await DnD.run_scenario_dice(interaction, scenario, addon)
+  await DnD.run_scenario_die(interaction, scenario, addon)
 
-@client.tree.command(name="list_die", description="Lists all the instances of dice")
+@client.tree.command(name="list_dice", description="Lists all the instances of dice")
 @with_timeout(timeout=2)
 async def list_dice(interaction: discord.Interaction):
   """
   Lists all the dice created
+  Returns:
+    - A list[str] of all dice created.
   """
   await DnD.run_list_dice(interaction)
 
@@ -123,7 +118,8 @@ async def list_dice(interaction: discord.Interaction):
 async def generate_weather(interaction: discord.Interaction):
   """
   Generates a random weather using weighted chances.
-  Stored in QuoteBot/Commands/weather_probabilities.json
+  Returns:
+    - A str of a weather
   """
   await DnD.run_generate_weather(interaction)
 
@@ -136,6 +132,8 @@ async def generate_weather(interaction: discord.Interaction):
 async def get_weather_stats(interaction: discord.Interaction):
   """
   Gets the 'weather_probabilities' .json file, and outputs statistics.
+  Returns:
+    - Embed object containing data on weather_probabilities.json
   """
   await DnD.run_weather_stats(interaction)
 
@@ -147,7 +145,7 @@ async def get_weather_stats(interaction: discord.Interaction):
 @with_timeout(timeout=1)
 async def clear_weather_stats(interaction: discord.Interaction):
   """
-  Clears the 'weather_probabilities' .json file, puts all counts to 0
+  Clears the 'weather_probabilities' .json file, puts all counts to 0.
   """
   await DnD.run_clear_weather_dict(interaction)
 
@@ -161,7 +159,9 @@ async def clear_weather_stats(interaction: discord.Interaction):
 async def add_weather(interaction: discord.Interaction, weather : str):
   """
   Adds the 'weather' to the weather_probabilities.json file.
-  Appended as data[weather] = 0
+  Appended as data[weather] = 0.
+  Param:
+    - weather: the weather to add to the .json file
   """
   await DnD.run_add_new_weather(interaction, weather)
 
@@ -175,6 +175,8 @@ async def add_weather(interaction: discord.Interaction, weather : str):
 async def remove_weather(interaction: discord.Interaction, weather : str):
   """
   Removes 'weather' from the weather_probabilities.json file.
+  Param:
+    - weather: the weather to remove completely from the .json file
   """
   await DnD.run_remove_weather(interaction, weather)
 
@@ -185,11 +187,14 @@ async def remove_weather(interaction: discord.Interaction, weather : str):
 )
 @app_commands.describe(weather="The weather you want to modify")
 @app_commands.describe(new_count="The new number of times the weather has been rolled")
-@with_timeout(timeout=1)
-async def modify_weather(interaction: discord.Interaction, weather : str, new_count : int):
+@with_timeout(timeout=2)
+async def modify_weather(interaction: discord.Interaction, weather: str, new_count: int):
   """
   Given weather, new_count, makes data[weather] = new_count.
-  Modifies the weather to have the new_count as the value
+  Modifies the weather to have the new_count as the value.
+  Params:
+    - weather: the weather to modify the count of
+    - new_count: the new integer to set the count to
   """
   await DnD.run_modify_weather_counts(interaction, weather, new_count)
 
@@ -202,12 +207,13 @@ async def modify_weather(interaction: discord.Interaction, weather : str, new_co
 async def output_raw_weather_json(interaction: discord.Interaction):
   """
   Outputs the weather_probabilities json file as a downloadable
+  Returns:
+    - A .json object sent as a file
   """
   await DnD.run_output_json_file(interaction)
 
-# Joins vc
 @client.tree.command(name="join", description="Joins the vc the user is in")
-@with_timeout(timeout=3)
+@with_timeout(timeout=2)
 async def join(interaction: discord.Interaction):
   """
   Bot joins the current vc the user is in.
@@ -215,7 +221,7 @@ async def join(interaction: discord.Interaction):
   await Utils.run_join(interaction)
 
 @client.tree.command(name="leave", description="Disconnects me from a voice channel")
-@with_timeout(timeout=3)
+@with_timeout(timeout=2)
 async def leave(interaction: discord.Interaction):
   """
   Stops the music, if playing. Then disconnects.
@@ -227,8 +233,8 @@ async def leave(interaction: discord.Interaction):
   discord.Object(id=GUILD_IDS[0]),
   discord.Object(id=GUILD_IDS[1])
 )
-@app_commands.describe(link="The exact youtube URL")
-@with_timeout(timeout=20)
+@app_commands.describe(link="The query or link to a Youtube video")
+@with_timeout(timeout=10)
 async def play(interaction: discord.Interaction, link: str):
   """
   Plays music given by the user. Can accept links or queries.
@@ -257,9 +263,19 @@ async def skip(interaction: discord.Interaction):
 @with_timeout(timeout=2)
 async def list_queue(interaction: discord.Interaction):
   """
-  Lists the songs in the queue
+  Lists the songs in the queue.
+  Returns:
+    - A description of the current queue
   """
   await Utils.run_list_queue(interaction)
+
+@client.tree.command(name="clear_queue", description="Clears the songs queue")
+@with_timeout(timeout=2)
+async def clear_queue(interaction: discord.Interaction):
+  """
+  Clears the queue of all songs.
+  """
+  await Utils.run_clear_queue(interaction)
 
 @client.tree.command(name="pause", description="Pauses the current song")
 @app_commands.guilds(
@@ -269,7 +285,7 @@ async def list_queue(interaction: discord.Interaction):
 @with_timeout(timeout=2)
 async def pause(interaction: discord.Interaction):
   """
-  Pause the current song playing
+  Pause the current song playing.
   """
   await Utils.run_pause(interaction)
 
@@ -281,7 +297,7 @@ async def pause(interaction: discord.Interaction):
 @with_timeout(timeout=2)
 async def resume(interaction: discord.Interaction):
   """
-  Resumes if the song is paused
+  Resumes if the song is paused.
   """
   await Utils.run_resume(interaction)
 
@@ -305,13 +321,12 @@ async def repeat(interaction: discord.Interaction):
 async def rand(interaction: discord.Interaction, user : discord.Member, limit : Optional[int], min_count : Optional[int]):
   """
   Sends a random single text user sent in this server. Quotes the user.
-  :params user: the user to find a quote of
+  Params:
+    - user: the user to find a quote of.
+    - limit: the number of previous messages to search through. May cause timeouts if too large.
+    - min_count: the min number of messages this user must have sent for this command to return a message. Defaulted
   """
-  try:
-    await Quotes.rand(interaction, user, limit=limit, min_count=min_count)
-  except TimeoutError as t:
-    print(f"Operation timed out: {t}")
-    await safe_send(interaction, f"Operation has timed out on the last {limit} messages in this channel.")
+  await Quotes.run_rand(interaction, user, limit=limit, min_count=min_count)
 
 @client.tree.command(name="repeat_after_me", description="Repeats what you say (no rude words you goober)")
 @app_commands.describe(string="The string you want me to repeat")
@@ -376,9 +391,12 @@ async def timezone(
     date_str
   )
 
-# Runs the bot
-try:
-  client.run(BOT_TOKEN)
-except Exception as e:
-  print(f"[FATAL ERROR]: run bot: Are you connected to the internet?")
-  print(e)
+if __name__ == "__main__":  
+  # Runs the bot
+  try:
+    print("QuoteBot: Starting bot...")
+    client.run(BOT_TOKEN)
+  except Exception as e:
+    report_error("fatal error starting bot (are you connected to the internet?): ", e)
+    print(f"[ERROR]: run bot: Are you connected to the internet?")
+    print(e)

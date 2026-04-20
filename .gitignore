@@ -12,3 +12,9 @@ tmp/
 
 # env var
 .env
+
+# any other . files
+.vscode/
+
+# weather probabilities
+/Helpers/weather_probabilities.json

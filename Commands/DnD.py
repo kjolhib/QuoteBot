@@ -2,10 +2,11 @@ import datetime
 import random
 import discord
 from typing import Optional
+
 from Helpers.Timezone_helper import format_AEST
 from Helpers.Utility_helpers import safe_send, safe_send_embed, safe_send_file
 from Helpers.DnD_helpers import *
-from ErrorHandler import ErrorHandler as eh
+from ErrorHandler.ErrorHandler import report_error
 from Classes import GuildState as gs
 from Classes import DnDSession as dsesh
 from Classes import Dice as d
@@ -47,7 +48,7 @@ async def run_end(interaction: discord.Interaction):
   state.dnd_session = None
   await safe_send(interaction, f"Session ended after {human_readable_time} seconds.")
 
-async def run_new_dice_instance(interaction: discord.Interaction, scenario: str, die_num: int):
+async def run_new_die_instance(interaction: discord.Interaction, scenario: str, die_num: int):
   """
   Creates a new dice instance.
   If not active session, ignore.
@@ -65,7 +66,7 @@ async def run_new_dice_instance(interaction: discord.Interaction, scenario: str,
 
   for s in curr_sesh_dies:
     if (scenario == s.scenario):
-      await safe_send(interaction, f"Dice with this scenario name: {scenario} already exists.")
+      await safe_send(interaction, f"Dice with this scenarizo name: {scenario} already exists.")
       return
     
   if len(curr_sesh_dies) > 100:
@@ -77,11 +78,10 @@ async def run_new_dice_instance(interaction: discord.Interaction, scenario: str,
     curr_sesh_dies.append(new_dice)
     await safe_send(interaction, f"Created new dice of the __{scenario}__ (D**{die_num}**) scenario. There are now **{len(curr_sesh_dies)}** die in the session.")
   except Exception as e:
-    await safe_send(interaction, f"[ERROR]: new_dice_instance: error creating new dice: {e}")
-    err = eh.Error(e, "/skip")
-    eh.report_error(err)
+    await safe_send(interaction, f"Unknown error while creating new die. Check logs for more details.")
+    report_error(f"new_dice_instance", e, f"attempting to create new die with scenario: {scenario}, faces: {die_num}.")
 
-async def run_scenario_dice(interaction: discord.Interaction, scenario: str, addon: Optional[int]=0):
+async def run_scenario_die(interaction: discord.Interaction, scenario: str, addon: Optional[int]=0):
   """
   Given a specific DnD die name, roll it, with optional addon
   Params:
@@ -102,22 +102,21 @@ async def run_scenario_dice(interaction: discord.Interaction, scenario: str, add
 
   # dice not found
   if not current_dice:
-    await safe_send(interaction, f"No die of scenario **{scenario}** found. Please create one first using /new_dice")
+    await safe_send(interaction, f"No die of scenario **{scenario}** found. Please create one first using /new_dice.")
     return
 
   try:
     roll = current_dice.simulate_weighted_rolls()
   except Exception as e:
-    await safe_send(interaction, f"Error simulating the dice roll... Check logs for details.")
-    err = eh.Error(e, "/s_dice/simulate_weighted_rolls")
-    eh.report_error(err)
+    await safe_send(interaction, f"Unknown error simulating the dice roll. Check logs for more details.")
+    report_error(f"scenario_dice", e, f"attempting to simulate dice rolls for scenario {scenario}.")
     return
 
   # addon print msg
   # this took longer than i'd like to admit. 2am coding is such a vibe
   # TODO: probably look into this in the future to simplify logic
-  addon_print = addon
   if addon:
+    addon_print = addon
     result = roll + addon
     sign = "+" if addon > 0 else "-"
     if addon_print < 0:
@@ -130,7 +129,7 @@ async def run_scenario_dice(interaction: discord.Interaction, scenario: str, add
 
 async def run_list_dice(interaction: discord.Interaction):
   """
-  Lists the scenario dice that exist.
+  Lists all scenario dice that exist.
   """
   # checks session active
   state = gs.get_guild_state(str(interaction.guild_id))
@@ -141,38 +140,41 @@ async def run_list_dice(interaction: discord.Interaction):
   curr_sesh_dies = state.dnd_session.current_session_dies
   if not curr_sesh_dies:
     # empty
-    await safe_send(interaction, f"No dice exists.")
+    await safe_send(interaction, f"No dice exist.")
     return
   
-  print_msg = "**Die Created:**\n"
+  print_msg = "**Dice Created:**\n"
   for die in curr_sesh_dies:
-    print_msg += f"__{die.scenario}__: *{die.faces}* faces\n"
+    print_msg += f"__{die.scenario}__: D*{die.faces}*\n"
 
   await safe_send(interaction, print_msg)
 
 async def run_generate_weather(interaction: discord.Interaction):
   """
-  Generates a new weather from a pool.
-  The pool is found in /weather_probabilities.json.
+  Generates a new weather from a json pool.
+  The json is found in /weather_probabilities.json.
   """
-
   # Load weather. from DnD_helpers.py
-  data = load_weather()
+  try:
+    data: dict[str, int]= load_weather()
 
-  weights: list[int] = []
-  weathers: list[str] = []
+    weights: list[float] = []
+    weathers: list[str] = []
 
-  # Collect the information from the json, and weight each weather's probability by their counts.
-  # More counts = less probability of being chosen.
-  for weather, count in data.items():
-    weathers.append(weather)
-    weights.append(1/(count+1))
+    # Collect the information from the json, and weight each weather's probability by their counts.
+    # More counts = less probability of being chosen.
+    for weather, count in data.items():
+      weathers.append(weather)
+      weights.append(1/(count+1))
 
-  # choose.
-  chosen = random.choices(weathers, weights=weights, k=1)[0]
-  data[chosen] += 1 # increment the count of the weather being chosen in the json file
-  save_weather(data)
-  await safe_send(interaction, f"The weather you have rolled is **{chosen}**! is that good?")
+    # choose.
+    chosen = random.choices(weathers, weights=weights, k=1)[0]
+    data[chosen] += 1 # increment the count of the weather being chosen in the json file
+    save_weather(data)
+    await safe_send(interaction, f"The weather you have rolled is **{chosen}**! is that good?")
+  except Exception as e:
+    await safe_send(interaction, f"Unknown error while loading/saving from weather json file. Check logs for more details.")
+    report_error("generate_weather", e, "attempted to load/save weather data")
 
 async def run_weather_stats(interaction: discord.Interaction):
   """
@@ -182,20 +184,29 @@ async def run_weather_stats(interaction: discord.Interaction):
       <count>
     ...
   """
-  data = load_weather()
-  embed = discord.Embed.from_dict(data)
+  try:
+    data = load_weather()
+    embed = discord.Embed.from_dict(data)
 
-  for weather, count in data.items():
-    embed.add_field(name=weather, value=str(count), inline=False)
-  
-  await safe_send_embed(interaction, embeds=embed)
+    for weather, count in data.items():
+      embed.add_field(name=weather, value=str(count), inline=False)
+    
+    await safe_send_embed(interaction, embeds=embed)
+  except Exception as e:
+    await safe_send(interaction, "Unknown error occured while processing weather data. Check logs for more details.")
+    report_error("weather_stats", e, "attempted to process weather data")
 
 async def run_clear_weather_dict(interaction: discord.Interaction):
   """
   Resets the weather to default, defined as INIT_DATA in DnD_helpers.py
   """
-  reset_weather_to_default()
-  await safe_send(interaction, "Weather data cleared.")
+  try:
+    init_data = get_init_data()
+    save_weather(init_data)
+    await safe_send(interaction, "Weather data cleared.")
+  except Exception as e:
+    await safe_send(interaction, f"Unknown error occurred while clearing weather data. Check logs for more details.")
+    report_error("clear_weather_dict", e, "attempted to clear weather data")
 
 async def run_add_new_weather(interaction: discord.Interaction, weather: str):
   """
@@ -205,33 +216,37 @@ async def run_add_new_weather(interaction: discord.Interaction, weather: str):
   """
   # TODO: allow for the newly added weather to "persist". ie. append it to INIT_DATA
 
-  data = load_weather()
-  data[weather] = 0
-  save_weather(data)
-  await safe_send(interaction, f"Weather '{weather}' has been added.")
+  try:
+    data = load_weather()
+    data[weather] = 0
+    save_weather(data)
+    await safe_send(interaction, f"Weather '{weather}' has been added.")
+  except Exception as e:
+    await safe_send(interaction, f"Unknown error while processing weather data. Check logs for more details.")
+    report_error("add_new_weather", e, "attempted to add a new weather into the weather dict")
 
 async def run_remove_weather(interaction: discord.Interaction, weather: str):
   """
   Removes weather from weather_probabilities.json file.
   Does NOT modify INIT_DATA
   """
-  # TODO: allow for the removed weather to "persist". ie. delete it to INIT_DATA
+  # TODO: allow for the removed weather to "persist". ie. delete it from INIT_DATA
 
-  data = load_weather()
-  if not weather in data:
-    # weather to remove doesn't exist
-    await safe_send(interaction, f"Weather {weather} is not a valid weather yet! Add it first with /add_weather!")
-    return
-
-  count = data[weather]
   try:
+    data = load_weather()
+    if not weather in data:
+      # weather to remove doesn't exist
+      await safe_send(interaction, f"Weather {weather} is not a valid weather yet! Add it first with /add_weather!")
+      return
+
+    count = data[weather]
     del data[weather]
     save_weather(data)
+    await safe_send(interaction, f"Weather {weather} removed with count {count}.")
   except Exception as e:
-    print(f"[ERROR]: remove_weather: {e}")
-    await safe_send(interaction, f"Error removing {weather}: check logs for more details.")
+    await safe_send(interaction, f"Unknown error occurred while removing {weather}. Check logs for more details.")
+    report_error(f"remove_weather", e, f"attempting to remove: {weather}.")
     return
-  await safe_send(interaction, f"Weather {weather} removed with count {count}.")
 
 async def run_modify_weather_counts(interaction: discord.Interaction, weather: str, new_count: int):
   """
@@ -240,22 +255,26 @@ async def run_modify_weather_counts(interaction: discord.Interaction, weather: s
     - weather: the name of the weather to be modified
     - new_count: the new count of the weather. weather.count = new_count
   """
-  data = load_weather()
-  if not weather in data:
-    # weather to remove doesn't exist
-    await safe_send(interaction, f"Weather {weather} is not a valid weather yet! Add it first with /add_weather!")
-    return
+  try:
+    data = load_weather()
+    if not weather in data:
+      # weather to remove doesn't exist
+      await safe_send(interaction, f"Weather {weather} is not a valid weather yet! Add it first with /add_weather!")
+      return
 
-  if new_count < 0:
-    # negative count
-    await safe_send(interaction, f"Negative counts ({new_count}) are not allowed you forehead. Try again.")
-    return
-  
-  old_count = data[weather]
-  data[weather] = new_count
-  save_weather(data)
-  await safe_send(interaction, f"Weather {weather} has been modified to have count {new_count}. Previous count was {old_count}")
-  return
+    if new_count < 0:
+      # negative count
+      await safe_send(interaction, f"Negative counts ({new_count}) are not allowed you forehead. Try again.")
+      return
+    
+    old_count = data[weather]
+    data[weather] = new_count
+    save_weather(data)
+    await safe_send(interaction, f"Weather {weather} has been modified to have count {new_count}. Previous count was {old_count}")
+
+  except Exception as e:
+    await safe_send(interaction, f"Unknown error occurred when modifying weather: {weather}. Check logs for more details.")
+    report_error(f"modify_weather", e, f"attempting to modify: {weather}.")
 
 async def run_output_json_file(interaction: discord.Interaction) -> None:
   """
@@ -268,10 +287,8 @@ async def run_output_json_file(interaction: discord.Interaction) -> None:
       await safe_send_file(interaction, file=file)
 
   except FileNotFoundError as fnfe:
-    await safe_send(interaction, f"Error, weather_probabilities.json not found. Contact @chewswisely.")
-    err = eh.Error(fnfe, "/resume")
-    eh.report_error(err)
+    await safe_send(interaction, f"Error, weather_probabilities.json not found. @chewswisely fucked something up.")
+    report_error("output_json_file", fnfe, "weather_probabilities.json file not found.")  
   except Exception as e:
     await safe_send(interaction, "Outputting file failed. Check logs for more details.")
-    err = eh.Error(e, "/resume")
-    eh.report_error(err)
+    report_error("output_json_file", e, "attempting to output weather_probabilities.json file.")

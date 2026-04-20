@@ -3,6 +3,8 @@ from string import capwords
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+from ErrorHandler import DateFormatError, TimeFormatError
+
 # Helper for timezone related features
 def convert_to_AEST(utc_dt: datetime) -> datetime:
     """
@@ -21,43 +23,41 @@ def format_AEST(utc_dt: datetime, fmt: str = "%Y-%m-%d %H:%M:%S %Z") -> str:
     local_dt = convert_to_AEST(utc_dt)
     return local_dt.strftime(fmt)
 
-def get_current_date(time_str, date_str, origin_country, origin_city):
+def get_current_date(time_str: str, date_str: str | None, origin_country: str, origin_city: str):
   """
   Gets the origin time and date.
   """
-  try:
-     # Get zone info object
-    zone = ZoneInfo(f"{origin_country}/{origin_city}")
+    # Get zone info object
+  zone = ZoneInfo(f"{origin_country}/{origin_city}")
 
-    # get time
-    time_pattern = r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
-    if not re.match(time_pattern, time_str):
-      # not in HH:MM format
-      return (402, "Please input time in the format HH:MM")
+  # get time
+  time_pattern = r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
+  if not re.match(time_pattern, time_str):
+    # not in HH:MM format
+    # return (402, "Please input time in the format HH:MM")
+    raise TimeFormatError.TimeFormatError("Time is not in format HH:MM")
 
-    hour = int(re.search(r"^([01]?[0-9]|2[0-3]):", time_str).group().strip(":"))
-    mins = int(re.search(r":[0-5][0-9]$", time_str).group().strip(":"))
+  hour = int(re.search(r"^([01]?[0-9]|2[0-3]):", time_str).group().strip(":"))
+  mins = int(re.search(r":[0-5][0-9]$", time_str).group().strip(":"))
 
-    # get date
-    if date_str:
-      # date specified
-      pattern = r'\d{2}/\d{2}/\d{4}'
-      if not re.match(pattern, date_str):
-        # check date is in format DD/MM/YYYY
-        return (401, "Please input date in the format DD/MM/YYYY")
-      day, month, year = map(int, date_str.split("/"))
-      dt_current_time = datetime(year, month, day,
-                                hour, mins, 0, tzinfo=zone)
-    else:
-      # use current system date
-      now = datetime.now()
-      dt_current_time = datetime(now.year, now.month, now.day,
-                                now.hour, now.minute, now.second, tzinfo=zone)
-    
-    return dt_current_time
-  except Exception as e:
-    print(f"[ERROR]: get_current_date: {e}")
-    return (400, "Incorrect format.")
+  # get date
+  if date_str:
+    # date specified
+    pattern = r'\d{2}/\d{2}/\d{4}'
+    if not re.match(pattern, date_str):
+      # check date is in format DD/MM/YYYY
+      # return (401, "Please input date in the format DD/MM/YYYY")
+      raise DateFormatError.DateFormatError("Date is not in the format DD/MM/YY")
+    day, month, year = map(int, date_str.split("/"))
+    dt_current_time = datetime(year, month, day,
+                              hour, mins, 0, tzinfo=zone)
+  else:
+    # use current system date
+    now = datetime.now()
+    dt_current_time = datetime(now.year, now.month, now.day,
+                              now.hour, now.minute, now.second, tzinfo=zone)
+  
+  return dt_current_time
 
 def convert_time(
     time_str: str,
@@ -68,7 +68,11 @@ def convert_time(
     date_str: str | None = None
 ):
   """
-  Converts a time from a given time, origin country/city, target country/city to another time
+  Converts a time from a given time, origin country/city, target country/city to another time.
+  Returns:
+    - 401: Date not in format DD/MM/YYYY
+    - 402: Time not in format HH:MM
+    - 403: Error converting timezones. Check logs for more details.
   """
   origin_country = capwords(origin_country).replace(" ", "_")
   origin_city = capwords(origin_city).replace(" ", "_")
@@ -77,6 +81,7 @@ def convert_time(
 
   print(
 f"""
+[convert_time]:
 Found data after formatting:
 Origin: {origin_city}, {origin_country}
 Target: {origin_city}, {origin_country}
@@ -84,16 +89,9 @@ Target: {origin_city}, {origin_country}
   )
 
   dt_origin = get_current_date(time_str, date_str, origin_country, origin_city)
-  if not isinstance(dt_origin, datetime):
-    # returned an error
-    return dt_origin
 
-  print(f"Received current date: {dt_origin.day}/{dt_origin.month}/{dt_origin.year} [{dt_origin.hour}:{dt_origin.minute}].")
-  try:
-    target_zone = ZoneInfo(f"{target_country}/{target_city}")
-    dt_target = dt_origin.astimezone(target_zone)
-  except Exception as e:
-    print(f"Error converting origin to target: {e}")
-    return (403, 403)
+  print(f"[convert_time]: Received current date: {dt_origin.day}/{dt_origin.month}/{dt_origin.year} [{dt_origin.hour}:{dt_origin.minute}].")
+  target_zone = ZoneInfo(f"{target_country}/{target_city}")
+  dt_target = dt_origin.astimezone(target_zone)
   
   return dt_origin, dt_target

@@ -7,10 +7,10 @@ class Dice:
   Has it's name (scenario), number of faces, and a list of past rolls.
   Has its own weighted simulated rolls.
   """
-  def __init__(self, scenario, faces):
+  def __init__(self, scenario: str, faces: int):
     self.scenario : str = scenario
     self.faces : int = faces
-    self.past_rolls = []
+    self.past_rolls: list[int] = []
 
   def simulate_weighted_rolls(self):
     # All possible faces

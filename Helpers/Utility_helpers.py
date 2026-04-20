@@ -2,11 +2,13 @@ import asyncio
 import discord
 import time
 from functools import wraps
-from typing import Callable, Awaitable
+from typing import Callable, Awaitable, TypeVar
 from typing_extensions import ParamSpec
-from ErrorHandler import ErrorHandler
+from ErrorHandler.ErrorHandler import report_error
+from Classes import GuildState as gs
 
 P = ParamSpec("P")
+R = TypeVar("R")
 
 # General helpers
 async def safe_send(interaction: discord.Interaction, message: str, ephemeral: bool=False) -> None:
@@ -38,7 +40,6 @@ async def safe_send_file(interaction: discord.Interaction, file: discord.File):
 
 async def timeout_err(interaction: discord.Interaction):
   """
-  TODO: Refactor using safe_send
   Timeout error version of safe_send. 
   """
   if interaction.response.is_done():
@@ -66,15 +67,32 @@ def with_timeout(timeout: float = 7.0):
         await asyncio.wait_for(func(interaction, *args, **kwargs), timeout=timeout) # type: ignore
       except asyncio.TimeoutError:
         await timeout_err(interaction)
-      except Exception:
+      except Exception as e:
         # catch everything else
-        ErrorHandler.report_exception(func.__name__)
-        await safe_send(interaction, f"Something (my code) went wrong... is it a lingering response?")
+        await safe_send(interaction, f"Uh oh, an unknown error occurred. Something (my code) went wrong. Check them logs and contact @chewswisely.")
+        report_error(func.__name__, exc=e, extra_info="An unknown error occurred.")
       finally:
         end = time.perf_counter()
         print(f"[{(func.__name__).upper()}] executed in {end-start:.3f}s")
     return wrapper # type: ignore
   return decorator
+
+def bot_require_voice_client(func: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
+  """
+  Require voice factory.
+  Functools is used to preserve discord.py's / command's ability to recognize the original function's signature for parsing arguments.
+  Checks if a user is in vc.  
+  """
+  @wraps(func)
+  async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+    interaction: discord.Interaction = args[0] # type: ignore
+    guild_id = str(interaction.guild_id)
+    state = gs.get_guild_state(guild_id)
+    if not state.voice_client:
+      await safe_send(interaction, "Not in a voice channel. ")
+      return #type: ignore
+    return await func(*args, **kwargs) # type: ignore
+  return wrapper
 
 # def display_table(interaction, header, body):
 #   """
