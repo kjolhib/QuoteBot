@@ -21,6 +21,7 @@ I also don't plan to make the bot publicly available (though haven't really look
   
   Starts a DnD session. Grants access to the following commands:
   - [/new_dice](#new_dice)
+  - [/remove_dice] (#remove_dice)
   - [/instance_dice](#instance_dice)
   </details>
 
@@ -41,14 +42,25 @@ I also don't plan to make the bot publicly available (though haven't really look
 
   </summary>
   
-  Creates a new weighted dice, with a specified number of `faces`, and of a specific `scenario`.
+  Creates a new weighted die, with a specified number of `faces`, and of a specific `scenario`.
   
   All instances are destroyed upon bot going offline.
   </details>
 
   <details>
   <summary>
-    
+  
+  ### /remove_dice
+  
+  </summary>
+  
+  Removes an existing die, specified by `scenario`.
+
+  </details>
+
+  <details>
+  <summary>
+
   #### /instance_dice
 
   </summary>
