@@ -1,10 +1,10 @@
 import discord
 from typing import Optional
-from Helpers.TimezoneHelpers import format_AEST
-from Helpers.UtilityHelpers import safe_send
-from Helpers.QuoteHelpers import *
-from ErrorHandler import LTMinCountError
-from ErrorHandler.ErrorHandler import report_error
+from helpers.TimezoneHelpers import format_AEST
+from helpers.UtilityHelpers import safe_send
+from helpers.QuoteHelpers import *
+from exceptions.utils import lt_min_count_error
+from exceptions.error_handler import report_error
 
 async def run_repeat(interaction: discord.Interaction, string: str):
   """
@@ -53,7 +53,7 @@ async def run_rand(interaction: discord.Interaction, user: discord.Member, limit
 
     timestamp = format_AEST(msg.created_at, "%Y-%m-%d %H:%M:%S")
     return await safe_send(interaction, '"' + msg.content + '"' + " - " + user.name + " (" + timestamp + ")")
-  except LTMinCountError:
+  except lt_min_count_error:
     await safe_send(interaction, f"{user.name} has sent less than {min_count} messages recently!")
   except Exception as e:
     await safe_send(interaction, f"An error occurred. Try again later or check logs.")

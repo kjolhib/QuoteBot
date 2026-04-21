@@ -3,7 +3,8 @@ from string import capwords
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from ErrorHandler import DateFormatError, TimeFormatError
+from exceptions.timezone import time_format_error
+from exceptions.timezone import date_format_error
 
 # Helper for timezone related features
 def convert_to_AEST(utc_dt: datetime) -> datetime:
@@ -35,7 +36,7 @@ def get_current_date(time_str: str, date_str: str | None, origin_country: str, o
   if not re.match(time_pattern, time_str):
     # not in HH:MM format
     # return (402, "Please input time in the format HH:MM")
-    raise TimeFormatError.TimeFormatError("Time is not in format HH:MM")
+    raise time_format_error.TimeFormatError("Time is not in format HH:MM")
 
   hour = int(re.search(r"^([01]?[0-9]|2[0-3]):", time_str).group().strip(":"))
   mins = int(re.search(r":[0-5][0-9]$", time_str).group().strip(":"))
@@ -47,7 +48,7 @@ def get_current_date(time_str: str, date_str: str | None, origin_country: str, o
     if not re.match(pattern, date_str):
       # check date is in format DD/MM/YYYY
       # return (401, "Please input date in the format DD/MM/YYYY")
-      raise DateFormatError.DateFormatError("Date is not in the format DD/MM/YY")
+      raise date_format_error.DateFormatError("Date is not in the format DD/MM/YY")
     day, month, year = map(int, date_str.split("/"))
     dt_current_time = datetime(year, month, day,
                               hour, mins, 0, tzinfo=zone)

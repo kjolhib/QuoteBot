@@ -15,6 +15,8 @@ tmp/
 
 # any other . files
 .vscode/
+.pytest_cache
+__pycache__
 
 # weather probabilities
-/Helpers/weather_probabilities.json
+/data/weather_probabilities.json

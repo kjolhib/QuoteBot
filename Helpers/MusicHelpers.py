@@ -2,11 +2,12 @@ import yt_dlp
 import asyncio
 import discord
 from typing import Any
-from ErrorHandler import JoinVcError
-from ErrorHandler import ClearQueueError, UserNotInVcError, UserInStageVcError
-from ErrorHandler.ErrorHandler import report_error
+from exceptions.music import user_in_stage_vc_error
+from exceptions.music import user_not_in_vc_error
+from exceptions.error_handler import report_error
+from exceptions.music import clear_queue_error, join_vc_error
 from .UtilityHelpers import safe_send
-from Classes.GuildState import GuildState
+from classes.guild_state import GuildState
 
 async def play_next_song(state: GuildState, interaction: discord.Interaction):
   """
@@ -68,18 +69,18 @@ async def ensure_vc(interaction: discord.Interaction, user: discord.Member, play
   # user must be in vc
   if not user.voice or not user.voice.channel:
     print("[PLAY]: ensure_vc: user is not in a vc.")
-    raise UserNotInVcError.UserNotInVcError("User is not in a vc.")
+    raise user_not_in_vc_error.UserNotInVcError("User is not in a vc.")
 
   # Check connections
   user_channel = user.voice.channel
   if isinstance(user_channel, discord.StageChannel):
     print("[PLAY]: ensure_vc: user is in a stage channel vc.")
-    raise UserInStageVcError.UserInStageVcError("User is in a stage vc.")
+    raise user_in_stage_vc_error.UserInStageVcError("User is in a stage vc.")
 
   try:
     return await _bot_join_vc(interaction, user_channel, user_name, play_cmd) # type: ignore
-  except JoinVcError.JoinVcError as jve:
-    raise JoinVcError.JoinVcError(f"Error clearing queue: {jve}")
+  except join_vc_error.JoinVcError as jve:
+    raise join_vc_error.JoinVcError(f"Error clearing queue: {jve}")
   
 async def clear_queue(state: GuildState):
   """
@@ -95,7 +96,7 @@ async def clear_queue(state: GuildState):
       if state.voice_client and (state.voice_client.is_playing() or state.voice_client.is_paused()):
         state.voice_client.stop()
   except Exception as e:
-    raise ClearQueueError.ClearQueueError(f"Error clearing queue: {e}")
+    raise clear_queue_error.ClearQueueError(f"Error clearing queue: {e}")
   
 async def search_first_track(query: str, ydl_options: dict[str, Any]) -> tuple[str, str] | None:
   """
@@ -113,10 +114,6 @@ async def search_first_track(query: str, ydl_options: dict[str, Any]) -> tuple[s
   first = tracks[0]
   return first["url"], first.get("title", "Untitled")
 
-"""
-Helper Functions
-"""
-# Check if bot is in vc, if not join,
 async def _bot_join_vc(interaction: discord.Interaction, user_channel: discord.VoiceChannel, user_name: str, play_cmd: bool):
   """
   Checks if the bot is already in vc.
@@ -144,7 +141,6 @@ async def _bot_join_vc(interaction: discord.Interaction, user_channel: discord.V
     await safe_send(interaction, f"Heed my arrival in {user_channel}, worm.")
     return bot_vc
 
-# Helper for _search_ytdlp_async
 def _extract(query: str, ydl_opts: dict[str, Any]):
   """
   Extracts the youtube query information

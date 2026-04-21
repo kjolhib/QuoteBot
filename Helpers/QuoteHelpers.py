@@ -2,7 +2,7 @@ import discord
 from typing import List, Optional
 from random import randint
 
-from ErrorHandler.LTMinCountError import LTMinCountError
+from exceptions.utils.lt_min_count_error import LTMinCountError
 
 # Helpers for Quote.py
 def choose_random_message(messages: List[discord.Message], min_count: int):

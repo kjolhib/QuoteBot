@@ -2,15 +2,15 @@ import asyncio
 import discord
 import time
 from functools import wraps
+
 from typing import Callable, Awaitable, TypeVar
 from typing_extensions import ParamSpec
-from ErrorHandler.ErrorHandler import report_error
-from Classes import GuildState as gs
+from exceptions.error_handler import report_error
+from classes import guild_state as gs
 
 P = ParamSpec("P")
 R = TypeVar("R")
 
-# General helpers
 async def safe_send(interaction: discord.Interaction, message: str, ephemeral: bool=False) -> None:
   """
   Sends bot response depending on whether or not interaction is deferred
