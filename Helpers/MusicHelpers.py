@@ -2,6 +2,9 @@ import yt_dlp
 import asyncio
 import discord
 from typing import Any
+
+from interaction_type import QuoteBotInteraction
+
 from exceptions.music import user_in_stage_vc_error
 from exceptions.music import user_not_in_vc_error
 from exceptions.error_handler import report_error
@@ -9,7 +12,7 @@ from exceptions.music import clear_queue_error, join_vc_error
 from .UtilityHelpers import safe_send
 from classes.guild_state import GuildState
 
-async def play_next_song(state: GuildState, interaction: discord.Interaction):
+async def play_next_song(state: GuildState, interaction: QuoteBotInteraction):
   """
   Plays the next song in queue.
   Repeat is handled automatically.
@@ -58,7 +61,7 @@ async def play_next_song(state: GuildState, interaction: discord.Interaction):
   # notify channels asynchornously
   asyncio.create_task(safe_send(interaction, now_msg))
 
-async def ensure_vc(interaction: discord.Interaction, user: discord.Member, play_cmd: bool=False) -> discord.VoiceClient | int:
+async def ensure_vc(interaction: QuoteBotInteraction, user: discord.Member, play_cmd: bool=False) -> discord.VoiceClient | int:
   """
   Ensures user is in VC, bot joins the vc if they are.
   Params:
@@ -114,7 +117,7 @@ async def search_first_track(query: str, ydl_options: dict[str, Any]) -> tuple[s
   first = tracks[0]
   return first["url"], first.get("title", "Untitled")
 
-async def _bot_join_vc(interaction: discord.Interaction, user_channel: discord.VoiceChannel, user_name: str, play_cmd: bool):
+async def _bot_join_vc(interaction: QuoteBotInteraction, user_channel: discord.VoiceChannel, user_name: str, play_cmd: bool):
   """
   Checks if the bot is already in vc.
   If not, joins.

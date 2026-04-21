@@ -1,19 +1,19 @@
 import discord
 from typing import Any
 
+from interaction_type import QuoteBotInteraction
+
 from exceptions.music import clear_queue_error, join_vc_error, user_in_stage_vc_error
 from helpers.MusicHelpers import search_first_track, play_next_song, clear_queue, ensure_vc
 from helpers.UtilityHelpers import bot_require_voice_client, safe_send
 from exceptions.music import (user_not_in_vc_error)
-from classes import guild_state as gs
 from exceptions.error_handler import report_error
 
-async def run_join(interaction: discord.Interaction):
+async def run_join(interaction: QuoteBotInteraction):
   """
   Joins vc.
   """
-  guild_id = str(interaction.guild_id)
-  state = gs.get_guild_state(guild_id)
+  state = interaction.client.get_guild_state(str(interaction.guild_id))
   try:
     vc = await _ensure_voice(interaction) # type: ignore
 
@@ -30,7 +30,7 @@ async def run_join(interaction: discord.Interaction):
     await safe_send(interaction, f"Unknown error when joining VC. Check logs for more details.")
     report_error("run_join", e, f"attempted to join vc: {e}")
 
-async def run_play(interaction: discord.Interaction, query: str):
+async def run_play(interaction: QuoteBotInteraction, query: str):
   """
   Plays a song based on query.
   Uses ytdlp library to download.
@@ -41,8 +41,7 @@ async def run_play(interaction: discord.Interaction, query: str):
   # TODO: allow spotify links to playlists/song (?)
 
   # get or create state
-  guild_id = str(interaction.guild_id)
-  state = gs.get_guild_state(guild_id)
+  state = interaction.client.get_guild_state(str(interaction.guild_id))
 
   # ensure user is in vc, if not, joins
   try:
@@ -98,12 +97,11 @@ async def run_play(interaction: discord.Interaction, query: str):
       report_error("run_play", e, f"error playing song")
   
 @bot_require_voice_client
-async def run_skip(interaction: discord.Interaction) -> None:
+async def run_skip(interaction: QuoteBotInteraction) -> None:
   """
   Skips the currently playing song.
   """
-  guild_id = str(interaction.guild_id)
-  state = gs.get_guild_state(guild_id)
+  state = interaction.client.get_guild_state(str(interaction.guild_id))
   if not state or not state.voice_client or not state.voice_client.is_playing():
     return await safe_send(interaction, "No songs playing.")
   
@@ -111,12 +109,11 @@ async def run_skip(interaction: discord.Interaction) -> None:
   await safe_send(interaction, "Skipping current song...")
 
 @bot_require_voice_client
-async def run_pause(interaction: discord.Interaction) -> None:
+async def run_pause(interaction: QuoteBotInteraction) -> None:
   """
   Pauses the playing song.
   """
-  guild_id = str(interaction.guild_id)
-  state = gs.get_guild_state(guild_id)
+  state = interaction.client.get_guild_state(str(interaction.guild_id))
   vc: discord.VoiceClient = state.voice_client # type: ignore
 
   # If not playing
@@ -132,12 +129,11 @@ async def run_pause(interaction: discord.Interaction) -> None:
     report_error("run_pause", e, f"error pausing song: {e}")
 
 @bot_require_voice_client
-async def run_resume(interaction: discord.Interaction):
+async def run_resume(interaction: QuoteBotInteraction):
   """
   Resumes the paused song.
   """
-  guild_id = str(interaction.guild_id)
-  state = gs.get_guild_state(guild_id)
+  state = interaction.client.get_guild_state(str(interaction.guild_id))
   vc = state.voice_client
 
   # If not pause
@@ -153,13 +149,12 @@ async def run_resume(interaction: discord.Interaction):
     report_error("run_resume", e, f"error resuming song: {e}")
 
 @bot_require_voice_client
-async def run_leave(interaction: discord.Interaction) -> None:
+async def run_leave(interaction: QuoteBotInteraction) -> None:
   """
   Leaves the VC.
   Clears the queue.
   """
-  guild_id = str(interaction.guild_id)
-  state: gs.GuildState = gs.get_guild_state(guild_id)
+  state = interaction.client.get_guild_state(str(interaction.guild_id))
 
   try:
     await clear_queue(state)
@@ -173,12 +168,11 @@ async def run_leave(interaction: discord.Interaction) -> None:
     report_error("run_leave", e, f"error leaving vc: {e}")
 
 @bot_require_voice_client
-async def run_clear_queue(interaction: discord.Interaction) -> None:
+async def run_clear_queue(interaction: QuoteBotInteraction) -> None:
   """
   Clears the queue of all songs.
   """
-  guild_id = str(interaction.guild_id)
-  state: gs.GuildState = gs.get_guild_state(guild_id)
+  state = interaction.client.get_guild_state(str(interaction.guild_id))
 
   try:
     await clear_queue(state)
@@ -191,14 +185,13 @@ async def run_clear_queue(interaction: discord.Interaction) -> None:
     report_error("run_clear_queue", e, f"error clearing queue: {e}")
 
 @bot_require_voice_client
-async def run_repeat(interaction: discord.Interaction):
+async def run_repeat(interaction: QuoteBotInteraction):
   """
   Loops the current song if not looping, if looping already, stop looping.
   Sets the guild state's repeat field to true.
 
   """
-  guild_id = str(interaction.guild_id)
-  state = gs.get_guild_state(guild_id)
+  state = interaction.client.get_guild_state(str(interaction.guild_id))
   if not state or not state.current:
     return await safe_send(interaction, "No songs are playing.")
   
@@ -208,12 +201,11 @@ async def run_repeat(interaction: discord.Interaction):
   await safe_send(interaction, msg)
 
 @bot_require_voice_client
-async def run_list_queue(interaction: discord.Interaction):
+async def run_list_queue(interaction: QuoteBotInteraction):
   """
   Lists the songs in queue.
   """
-  guild_id = str(interaction.guild_id)
-  state = gs.get_guild_state(guild_id)
+  state = interaction.client.get_guild_state(str(interaction.guild_id))
   
   # empty queue
   if not state.queue and not state.current:
@@ -232,7 +224,7 @@ async def run_list_queue(interaction: discord.Interaction):
 """
 Helper functions
 """
-async def _ensure_voice(interaction: discord.Interaction, play_cmd: bool=False) -> discord.VoiceClient:
+async def _ensure_voice(interaction: QuoteBotInteraction, play_cmd: bool=False) -> discord.VoiceClient:
   """
   Ensures the bot is in a vc, if not, joins the vc that the user is in.
   """

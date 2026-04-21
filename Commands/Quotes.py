@@ -1,12 +1,15 @@
 import discord
 from typing import Optional
+
+from interaction_type import QuoteBotInteraction
+
 from helpers.TimezoneHelpers import format_AEST
 from helpers.UtilityHelpers import safe_send
 from helpers.QuoteHelpers import *
 from exceptions.utils import lt_min_count_error
 from exceptions.error_handler import report_error
 
-async def run_repeat(interaction: discord.Interaction, string: str):
+async def run_repeat(interaction: QuoteBotInteraction, string: str):
   """
   Repeats the string specified by the user.
   Used to debug and check that the bot actually connected and responded to the user. 
@@ -20,7 +23,7 @@ async def run_repeat(interaction: discord.Interaction, string: str):
     await safe_send(interaction, f"Error sending message. Check logs for more details.")
     report_error(f"repeat_after_me", e, f"{string}")
 
-async def run_rand(interaction: discord.Interaction, user: discord.Member, limit: Optional[int], min_count: Optional[int]):
+async def run_rand(interaction: QuoteBotInteraction, user: discord.Member, limit: Optional[int], min_count: Optional[int]):
   """
   Sends a random single text user sent in this server.
   Quotes the user.
@@ -45,7 +48,8 @@ async def run_rand(interaction: discord.Interaction, user: discord.Member, limit
       limit = 200
     if not min_count:
       min_count = 0
-    msg = await get_random_message(interaction, user, limit, min_count)
+
+    msg = await _get_random_message(interaction, user, limit, min_count)
     
     if not msg:
       print(f"No messages sent: {limit}")
@@ -58,3 +62,19 @@ async def run_rand(interaction: discord.Interaction, user: discord.Member, limit
   except Exception as e:
     await safe_send(interaction, f"An error occurred. Try again later or check logs.")
     report_error(f"[random_msg]", e, f"info: {user}, limit: {limit}, min_count: {min_count}")
+
+async def _get_random_message(interaction: QuoteBotInteraction, user: discord.Member, limit: Optional[int], min_count: int):
+  """
+  Pseudo-random message.
+  Returns:
+    - None: no messages found
+    - message dict if found
+  """
+  channel = interaction.channel
+  # Get last n messages if user sent it
+  messages = await get_last_n_messages(channel, limit, user) # type: ignore
+  if not messages:
+    return None
+
+  return choose_random_message(messages, min_count)
+

@@ -1,11 +1,11 @@
 import json
 import os
-import discord
 from functools import wraps
 from typing import Callable, Awaitable, TypeVar
 from typing_extensions import ParamSpec
 
-from classes import guild_state as gs
+from interaction_type import QuoteBotInteraction
+
 from helpers.UtilityHelpers import safe_send
 
 P = ParamSpec("P")
@@ -63,9 +63,8 @@ def require_valid_session(func: Callable[P, Awaitable[R]]) -> Callable[P, Awaita
   """
   @wraps(func)
   async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-    interaction: discord.Interaction = args[0] # type: ignore
-    guild_id = str(interaction.guild_id)
-    state = gs.get_guild_state(guild_id)
+    interaction: QuoteBotInteraction = args[0] # type: ignore
+    state = interaction.client.get_guild_state(str(interaction.guild_id))
     if not state.dnd_session:
       func_name_msg_dict = {
         "run_end": "No session is active.",

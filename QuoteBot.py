@@ -1,11 +1,13 @@
 import discord
 import os
 from dotenv import load_dotenv
-from discord.ext import commands
 from discord import app_commands
 from typing import Optional
 
+from interaction_type import QuoteBotInteraction
+
 # Helper Imports
+from classes.quote_bot import QuoteBot
 from commands import utils, dnd, quotes, music
 from helpers.UtilityHelpers import with_timeout
 from exceptions.error_handler import configure_logging, report_error
@@ -31,10 +33,7 @@ GUILD_IDS = [
   get_env("GHIONCK")
 ]
 
-# Set intents and client
-intents = discord.Intents.default()
-intents.message_content = True
-client = commands.Bot(command_prefix="!", intents=intents)
+client = QuoteBot()
 
 @client.event
 async def on_ready():
@@ -58,7 +57,7 @@ async def on_ready():
 
 @client.tree.command(name="start", description="Starts a dnd session")
 @with_timeout(timeout=1)
-async def start(interaction : discord.Interaction):
+async def start(interaction: QuoteBotInteraction):
   """
   Start a dnd session.
   Sets is_active to be True in dnd class
@@ -67,7 +66,7 @@ async def start(interaction : discord.Interaction):
 
 @client.tree.command(name="end", description="End a dnd session")
 @with_timeout(timeout=1)
-async def end(interaction: discord.Interaction):
+async def end(interaction: QuoteBotInteraction):
   """
   Ends a dnd session.
   Sets is_active to be False in dnd Class
@@ -78,7 +77,7 @@ async def end(interaction: discord.Interaction):
 @app_commands.describe(scenario="What do you want to use this die for?")
 @app_commands.describe(faces="The number of faces this die has")
 @with_timeout(timeout=3)
-async def new_die(interaction: discord.Interaction, scenario: str, faces: int):
+async def new_die(interaction: QuoteBotInteraction, scenario: str, faces: int):
   """
   Creates a new die instance named scenario with die_num number of faces
   Params:
@@ -90,7 +89,7 @@ async def new_die(interaction: discord.Interaction, scenario: str, faces: int):
 @client.tree.command(name="remove_die", description="Deletes an instace die from this session")
 @app_commands.describe(scenario="What is the scenario name of the die you want to remove?")
 @with_timeout(timeout=3)
-async def remove_die(interaction: discord.Interaction, scenario: str):
+async def remove_die(interaction: QuoteBotInteraction, scenario: str):
   """
   Creates a new die instance named scenario with die_num number of faces
   Params:
@@ -104,7 +103,7 @@ async def remove_die(interaction: discord.Interaction, scenario: str):
 @app_commands.describe(scenario="The die you want to roll")
 @app_commands.describe(addon="Adds or subtracts this result from the die result")
 @with_timeout(timeout=2)
-async def s_dice(interaction: discord.Interaction, scenario: str, addon: Optional[int]):
+async def s_dice(interaction: QuoteBotInteraction, scenario: str, addon: Optional[int]):
   """
   Takes a scnenario, and rolls the corresponding scenario's die
   Params:
@@ -114,7 +113,7 @@ async def s_dice(interaction: discord.Interaction, scenario: str, addon: Optiona
 
 @client.tree.command(name="list_dice", description="Lists all the instances of dice")
 @with_timeout(timeout=2)
-async def list_dice(interaction: discord.Interaction):
+async def list_dice(interaction: QuoteBotInteraction):
   """
   Lists all the dice created
   Returns:
@@ -128,7 +127,7 @@ async def list_dice(interaction: discord.Interaction):
   discord.Object(id=GUILD_IDS[1])
 )
 @with_timeout(timeout=1)
-async def generate_weather(interaction: discord.Interaction):
+async def generate_weather(interaction: QuoteBotInteraction):
   """
   Generates a random weather using weighted chances.
   Returns:
@@ -142,7 +141,7 @@ async def generate_weather(interaction: discord.Interaction):
   discord.Object(id=GUILD_IDS[1])
 )
 @with_timeout(timeout=1)
-async def get_weather_stats(interaction: discord.Interaction):
+async def get_weather_stats(interaction: QuoteBotInteraction):
   """
   Gets the 'weather_probabilities' .json file, and outputs statistics.
   Returns:
@@ -156,7 +155,7 @@ async def get_weather_stats(interaction: discord.Interaction):
   discord.Object(id=GUILD_IDS[1])
 )
 @with_timeout(timeout=1)
-async def clear_weather_stats(interaction: discord.Interaction):
+async def clear_weather_stats(interaction: QuoteBotInteraction):
   """
   Clears the 'weather_probabilities' .json file, puts all counts to 0.
   """
@@ -169,7 +168,7 @@ async def clear_weather_stats(interaction: discord.Interaction):
 )
 @app_commands.describe(weather="The weather you want added")
 @with_timeout(timeout=1)
-async def add_weather(interaction: discord.Interaction, weather : str):
+async def add_weather(interaction: QuoteBotInteraction, weather : str):
   """
   Adds the 'weather' to the weather_probabilities.json file.
   Appended as data[weather] = 0.
@@ -185,7 +184,7 @@ async def add_weather(interaction: discord.Interaction, weather : str):
 )
 @app_commands.describe(weather="The weather you want removed")
 @with_timeout(timeout=1)
-async def remove_weather(interaction: discord.Interaction, weather : str):
+async def remove_weather(interaction: QuoteBotInteraction, weather : str):
   """
   Removes 'weather' from the weather_probabilities.json file.
   Param:
@@ -201,7 +200,7 @@ async def remove_weather(interaction: discord.Interaction, weather : str):
 @app_commands.describe(weather="The weather you want to modify")
 @app_commands.describe(new_count="The new number of times the weather has been rolled")
 @with_timeout(timeout=2)
-async def modify_weather(interaction: discord.Interaction, weather: str, new_count: int):
+async def modify_weather(interaction: QuoteBotInteraction, weather: str, new_count: int):
   """
   Given weather, new_count, makes data[weather] = new_count.
   Modifies the weather to have the new_count as the value.
@@ -217,7 +216,7 @@ async def modify_weather(interaction: discord.Interaction, weather: str, new_cou
   discord.Object(id=GUILD_IDS[1])
 )
 @with_timeout(timeout=3)
-async def output_raw_weather_json(interaction: discord.Interaction):
+async def output_raw_weather_json(interaction: QuoteBotInteraction):
   """
   Outputs the weather_probabilities json file as a downloadable
   Returns:
@@ -227,7 +226,7 @@ async def output_raw_weather_json(interaction: discord.Interaction):
 
 @client.tree.command(name="join", description="Joins the vc the user is in")
 @with_timeout(timeout=2)
-async def join(interaction: discord.Interaction):
+async def join(interaction: QuoteBotInteraction):
   """
   Bot joins the current vc the user is in.
   """
@@ -235,7 +234,7 @@ async def join(interaction: discord.Interaction):
 
 @client.tree.command(name="leave", description="Disconnects me from a voice channel")
 @with_timeout(timeout=2)
-async def leave(interaction: discord.Interaction):
+async def leave(interaction: QuoteBotInteraction):
   """
   Stops the music, if playing. Then disconnects.
   """
@@ -248,7 +247,7 @@ async def leave(interaction: discord.Interaction):
 )
 @app_commands.describe(link="The query or link to a Youtube video")
 @with_timeout(timeout=10)
-async def play(interaction: discord.Interaction, link: str):
+async def play(interaction: QuoteBotInteraction, link: str):
   """
   Plays music given by the user. Can accept links or queries.
   Params:
@@ -262,7 +261,7 @@ async def play(interaction: discord.Interaction, link: str):
   discord.Object(id=GUILD_IDS[1])
 )
 @with_timeout(timeout=3)
-async def skip(interaction: discord.Interaction):
+async def skip(interaction: QuoteBotInteraction):
   """
   Skips the current song playing from the queue.
   """
@@ -274,7 +273,7 @@ async def skip(interaction: discord.Interaction):
   discord.Object(id=GUILD_IDS[1])
 )
 @with_timeout(timeout=2)
-async def list_queue(interaction: discord.Interaction):
+async def list_queue(interaction: QuoteBotInteraction):
   """
   Lists the songs in the queue.
   Returns:
@@ -284,7 +283,7 @@ async def list_queue(interaction: discord.Interaction):
 
 @client.tree.command(name="clear_queue", description="Clears the songs queue")
 @with_timeout(timeout=2)
-async def clear_queue(interaction: discord.Interaction):
+async def clear_queue(interaction: QuoteBotInteraction):
   """
   Clears the queue of all songs.
   """
@@ -296,7 +295,7 @@ async def clear_queue(interaction: discord.Interaction):
   discord.Object(id=GUILD_IDS[1])
 )
 @with_timeout(timeout=2)
-async def pause(interaction: discord.Interaction):
+async def pause(interaction: QuoteBotInteraction):
   """
   Pause the current song playing.
   """
@@ -308,7 +307,7 @@ async def pause(interaction: discord.Interaction):
   discord.Object(id=GUILD_IDS[1])
 )
 @with_timeout(timeout=2)
-async def resume(interaction: discord.Interaction):
+async def resume(interaction: QuoteBotInteraction):
   """
   Resumes if the song is paused.
   """
@@ -320,7 +319,7 @@ async def resume(interaction: discord.Interaction):
   discord.Object(id=GUILD_IDS[1])
 )
 @with_timeout(timeout=2)
-async def repeat(interaction: discord.Interaction):
+async def repeat(interaction: QuoteBotInteraction):
   """
   Repeats the currently playing song
   """
@@ -331,7 +330,7 @@ async def repeat(interaction: discord.Interaction):
 @app_commands.describe(limit="Limit the number of messages sent, larger numbers will cause this to time out")
 @app_commands.describe(min_count="If user sent < than min_count messages, this command will do nothing")
 @with_timeout(timeout=7)
-async def rand(interaction: discord.Interaction, user : discord.Member, limit : Optional[int], min_count : Optional[int]):
+async def rand(interaction: QuoteBotInteraction, user : discord.Member, limit : Optional[int], min_count : Optional[int]):
   """
   Sends a random single text user sent in this server. quotes the user.
   Params:
@@ -344,7 +343,7 @@ async def rand(interaction: discord.Interaction, user : discord.Member, limit : 
 @client.tree.command(name="repeat_after_me", description="Repeats what you say (no rude words you goober)")
 @app_commands.describe(string="The string you want me to repeat")
 @with_timeout(timeout=1)
-async def repeatafterme(interaction: discord.Interaction, string: str):
+async def repeatafterme(interaction: QuoteBotInteraction, string: str):
     """
     Repeats whatever the user says.
     Params:
@@ -356,7 +355,7 @@ async def repeatafterme(interaction: discord.Interaction, string: str):
 @client.tree.command(name="dice", description="Rolls a dice with a number of faces")
 @app_commands.describe(faces="The number of faces this dice has")
 @with_timeout(timeout=2)
-async def dice(interaction: discord.Interaction, faces: int, addon: Optional[int]):
+async def dice(interaction: QuoteBotInteraction, faces: int, addon: Optional[int]):
   """
   Rolls a dice with die_num number of faces.
   Params:
@@ -375,7 +374,7 @@ async def dice(interaction: discord.Interaction, faces: int, addon: Optional[int
 @app_commands.describe(date_str="Optional date, if nothing entered, will use current date")
 @with_timeout(timeout=3)
 async def timezone(
-  interaction: discord.Interaction,
+  interaction: QuoteBotInteraction,
   time: str,
   origin_country: str,
   origin_city: str, 

@@ -1,5 +1,6 @@
-import discord
 from typing import Optional
+
+from interaction_type import QuoteBotInteraction
 
 # Helper imports
 from exceptions.timezone import date_format_error
@@ -10,7 +11,7 @@ from exceptions.error_handler import report_error
 from exceptions.dice import invalid_faces_error
 from helpers.TimezoneHelpers import convert_time
 
-async def run_d(interaction: discord.Interaction, die_num: int, addon: Optional[int]=0):
+async def run_d(interaction: QuoteBotInteraction, die_num: int, addon: Optional[int]=0):
   """
   Rolls a die with die_num faces and adds addon to the result.
   """
@@ -24,7 +25,7 @@ async def run_d(interaction: discord.Interaction, die_num: int, addon: Optional[
     report_error("run_d", e, f"attempted to roll a die with {die_num} faces, and {addon if addon else "no"} addons")
 
 async def run_timezone_converter(
-  interaction: discord.Interaction,
+  interaction: QuoteBotInteraction,
   time: str,
   origin_country: str,
   origin_city: str, 

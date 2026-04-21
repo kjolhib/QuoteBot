@@ -3,22 +3,23 @@ import random
 import discord
 from typing import Optional
 
+from interaction_type import QuoteBotInteraction
+
 from exceptions.dice import die_alr_exists_error, no_dice_in_sesh_error, invalid_faces_error
 from helpers.TimezoneHelpers import format_AEST
 from helpers.UtilityHelpers import safe_send, safe_send_embed, safe_send_file
 from helpers.DnDHelpers import *
 from exceptions.error_handler import report_error
 from exceptions.dice import too_many_dice_error
-from classes import guild_state as gs
 from classes import dnd_session as dsesh
 
-async def run_start(interaction: discord.Interaction):
+async def run_start(interaction: QuoteBotInteraction):
   """
   Starts a DnD session.
   Creates one if not active.
   Sets the guild's dnd_session variable to the newly created class DnDSession.
   """
-  state = gs.get_guild_state(str(interaction.guild_id))
+  state = interaction.client.get_guild_state(str(interaction.guild_id))
   if state.dnd_session is not None:
     await safe_send(interaction, f"Session already started.")
     return
@@ -31,12 +32,12 @@ async def run_start(interaction: discord.Interaction):
   await safe_send(interaction, f"New session started at {human_readable_time}.")
 
 @require_valid_session
-async def run_end(interaction: discord.Interaction):
+async def run_end(interaction: QuoteBotInteraction):
   """
   Ends a DnD session.
   Clears the guild's dnd_session.
   """
-  state = gs.get_guild_state(str(interaction.guild_id))
+  state = interaction.client.get_guild_state(str(interaction.guild_id))
   assert state.dnd_session # should always be not none if going into the function. decorator should have handled None cases
 
   # How long the session lasted
@@ -49,12 +50,12 @@ async def run_end(interaction: discord.Interaction):
   await safe_send(interaction, f"Session ended after {human_readable_time} seconds.")
 
 @require_valid_session
-async def run_new_die_instance(interaction: discord.Interaction, scenario: str, die_num: int):
+async def run_new_die_instance(interaction: QuoteBotInteraction, scenario: str, die_num: int):
   """
   Creates a new dice instance.
   If not active session, ignore.
   """
-  state = gs.get_guild_state(str(interaction.guild_id))
+  state = interaction.client.get_guild_state(str(interaction.guild_id))
   assert state.dnd_session
 
   try:
@@ -72,13 +73,13 @@ async def run_new_die_instance(interaction: discord.Interaction, scenario: str, 
     report_error(f"new_dice_instance", e, f"attempting to create new die with scenario: {scenario}, faces: {die_num}.")
 
 @require_valid_session
-async def run_remove_die_instance(interaction: discord.Interaction, scenario: str):
+async def run_remove_die_instance(interaction: QuoteBotInteraction, scenario: str):
   """
   Removes a given die.
   Params:
     - scenario: the die we want to remove from the current session
   """
-  state = gs.get_guild_state(str(interaction.guild_id))
+  state = interaction.client.get_guild_state(str(interaction.guild_id))
   assert state.dnd_session
 
   try:
@@ -91,14 +92,14 @@ async def run_remove_die_instance(interaction: discord.Interaction, scenario: st
     report_error("run_remove_die_instace", e, f"attempted to remove dice of scenario {scenario}")
 
 @require_valid_session
-async def run_scenario_die(interaction: discord.Interaction, scenario: str, addon: Optional[int]=0):
+async def run_scenario_die(interaction: QuoteBotInteraction, scenario: str, addon: Optional[int]=0):
   """
   Given a specific DnD die name, roll it, with optional addon
   Params:
     - scenario: the name of the die
     - addon: optional. adds this value to the result of the die roll
   """
-  state = gs.get_guild_state(str(interaction.guild_id))
+  state = interaction.client.get_guild_state(str(interaction.guild_id))
   assert state.dnd_session
 
   # Check that the scenario exists
@@ -131,12 +132,12 @@ async def run_scenario_die(interaction: discord.Interaction, scenario: str, addo
   await safe_send(interaction, print_msg)
 
 @require_valid_session
-async def run_list_dice(interaction: discord.Interaction):
+async def run_list_dice(interaction: QuoteBotInteraction):
   """
   Lists all scenario dice that exist.
   """
   # checks session active
-  state = gs.get_guild_state(str(interaction.guild_id))
+  state = interaction.client.get_guild_state(str(interaction.guild_id))
   assert state.dnd_session
 
   session = state.dnd_session
@@ -148,7 +149,7 @@ async def run_list_dice(interaction: discord.Interaction):
     return
 
 @require_valid_session
-async def run_generate_weather(interaction: discord.Interaction):
+async def run_generate_weather(interaction: QuoteBotInteraction):
   """
   Generates a new weather from a json pool.
   The json is found in weather_probabilities.json.
@@ -174,7 +175,7 @@ async def run_generate_weather(interaction: discord.Interaction):
     await safe_send(interaction, f"Unknown error while loading/saving from weather json file. Check logs for more details.")
     report_error("generate_weather", e, "attempted to load/save weather data")
 
-async def run_weather_stats(interaction: discord.Interaction):
+async def run_weather_stats(interaction: QuoteBotInteraction):
   """
   Lists as an standard embed, the json file.
   Formatted as:
@@ -194,7 +195,7 @@ async def run_weather_stats(interaction: discord.Interaction):
     await safe_send(interaction, "Unknown error occured while processing weather data. Check logs for more details.")
     report_error("weather_stats", e, "attempted to process weather data")
 
-async def run_clear_weather_dict(interaction: discord.Interaction):
+async def run_clear_weather_dict(interaction: QuoteBotInteraction):
   """
   Resets the weather to default, defined as INIT_DATA in DnD_helpers.py
   """
@@ -206,7 +207,7 @@ async def run_clear_weather_dict(interaction: discord.Interaction):
     await safe_send(interaction, f"Unknown error occurred while clearing weather data. Check logs for more details.")
     report_error("clear_weather_dict", e, "attempted to clear weather data")
 
-async def run_add_new_weather(interaction: discord.Interaction, weather: str):
+async def run_add_new_weather(interaction: QuoteBotInteraction, weather: str):
   """
   Adds a new weather to weather_probabilities.json file.
   Persists across sessions.
@@ -223,7 +224,7 @@ async def run_add_new_weather(interaction: discord.Interaction, weather: str):
     await safe_send(interaction, f"Unknown error while processing weather data. Check logs for more details.")
     report_error("add_new_weather", e, "attempted to add a new weather into the weather dict")
 
-async def run_remove_weather(interaction: discord.Interaction, weather: str):
+async def run_remove_weather(interaction: QuoteBotInteraction, weather: str):
   """
   Removes weather from weather_probabilities.json file.
   Does NOT modify INIT_DATA
@@ -246,7 +247,7 @@ async def run_remove_weather(interaction: discord.Interaction, weather: str):
     report_error(f"remove_weather", e, f"attempting to remove: {weather}.")
     return
 
-async def run_modify_weather_counts(interaction: discord.Interaction, weather: str, new_count: int):
+async def run_modify_weather_counts(interaction: QuoteBotInteraction, weather: str, new_count: int):
   """
   Modify the count of a given weather.
   Params:
@@ -274,7 +275,7 @@ async def run_modify_weather_counts(interaction: discord.Interaction, weather: s
     await safe_send(interaction, f"Unknown error occurred when modifying weather: {weather}. Check logs for more details.")
     report_error(f"modify_weather", e, f"attempting to modify: {weather}.")
 
-async def run_output_json_file(interaction: discord.Interaction) -> None:
+async def run_output_json_file(interaction: QuoteBotInteraction) -> None:
   """
   Outputs the raw JSON file for storage if needed.
   """

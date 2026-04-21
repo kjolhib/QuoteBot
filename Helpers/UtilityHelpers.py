@@ -3,10 +3,11 @@ import discord
 import time
 from functools import wraps
 
+from interaction_type import QuoteBotInteraction
+
 from typing import Callable, Awaitable, TypeVar
 from typing_extensions import ParamSpec
 from exceptions.error_handler import report_error
-from classes import guild_state as gs
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -85,9 +86,8 @@ def bot_require_voice_client(func: Callable[P, Awaitable[R]]) -> Callable[P, Awa
   """
   @wraps(func)
   async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-    interaction: discord.Interaction = args[0] # type: ignore
-    guild_id = str(interaction.guild_id)
-    state = gs.get_guild_state(guild_id)
+    interaction: QuoteBotInteraction = args[0] # type: ignore
+    state = interaction.client.get_guild_state(str(interaction.guild_id))
     if not state.voice_client:
       await safe_send(interaction, "Not in a voice channel. ")
       return #type: ignore

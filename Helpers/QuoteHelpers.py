@@ -43,18 +43,3 @@ async def get_last_n_messages(channel: discord.abc.Messageable, limit: Optional[
     if msg.author.id == user.id
   ]
 
-async def get_random_message(interaction: discord.Interaction, user: discord.Member, limit: Optional[int], min_count: int):
-  """
-  Pseudo-random message.
-  Returns:
-    - None: no messages found
-    - 401: messages found but less than min_count
-    - message dict if found
-  """
-  channel = interaction.channel
-  # Get last n messages if user sent it
-  messages = await get_last_n_messages(channel, limit, user) # type: ignore
-  if not messages:
-    return None
-
-  return choose_random_message(messages, min_count)

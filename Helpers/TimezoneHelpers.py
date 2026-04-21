@@ -38,8 +38,8 @@ def get_current_date(time_str: str, date_str: str | None, origin_country: str, o
     # return (402, "Please input time in the format HH:MM")
     raise time_format_error.TimeFormatError("Time is not in format HH:MM")
 
-  hour = int(re.search(r"^([01]?[0-9]|2[0-3]):", time_str).group().strip(":"))
-  mins = int(re.search(r":[0-5][0-9]$", time_str).group().strip(":"))
+  hour = int(re.search(r"^([01]?[0-9]|2[0-3]):", time_str).group().strip(":")) # type: ignore
+  mins = int(re.search(r":[0-5][0-9]$", time_str).group().strip(":")) # type: ignore
 
   # get date
   if date_str:

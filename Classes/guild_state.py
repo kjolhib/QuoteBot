@@ -25,14 +25,3 @@ class GuildState:
     self.current: tuple[str, str] | None = None # current song, containing url, title
     self.repeat: bool = False # repeats current song
 
-# Global of all guild states
-GUILD_STATES: dict[str, GuildState] = {} # guild_id -> GuildState
-
-def get_guild_state(guild_id: str) -> GuildState:
-  state = GUILD_STATES.get(guild_id)
-  if state is None:
-    # No states yet, create it
-    state = GuildState()
-    GUILD_STATES[guild_id] = state
-  
-  return state
