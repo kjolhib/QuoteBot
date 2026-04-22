@@ -27,8 +27,7 @@ def get_env(key: str) -> int:
 BOT_TOKEN = os.getenv("QBOT_TOKEN")
 if not BOT_TOKEN:
   raise ValueError("QuoteBot: Environment Initialisation error: bot_token not found/set.")
-CMD_CHANNEL_ID = get_env("GHIONCK_CMD_CHNL")
-GUILD_IDS = [
+GUILD_IDS_PRIVATE = [
   get_env("DEV_SERVER"),
   get_env("GHIONCK")
 ]
@@ -38,14 +37,16 @@ client = QuoteBot()
 @client.event
 async def on_ready():
   print(f'QuoteBot: {client.user} started!')
-  for guild_id in GUILD_IDS:
+  await client.tree.sync()
+
+  # private commands
+  for guild_id in GUILD_IDS_PRIVATE:
     guild = discord.Object(id=guild_id)
     try:
       # Give global access to most commands
       # Note. Some commands are specifically tailored for private use.
       # For the most part, this is because of the .json data I have stored on my local computer.
       # Don't want it messed up by other people from different servers.
-      client.tree.copy_global_to(guild=guild)
       synced = await client.tree.sync(guild=guild)
       print(f"[SYNC] Synced {len(synced)} commands to guild {guild_id}")
     except Exception as e:
@@ -122,10 +123,7 @@ async def list_dice(interaction: QuoteBotInteraction):
   await dnd.run_list_dice(interaction)
 
 @client.tree.command(name="weather", description="Generate a random weather")
-@app_commands.guilds(
-  discord.Object(id=GUILD_IDS[0]),
-  discord.Object(id=GUILD_IDS[1])
-)
+@app_commands.guilds(*[discord.Object(id=id) for id in GUILD_IDS_PRIVATE])
 @with_timeout(timeout=1)
 async def generate_weather(interaction: QuoteBotInteraction):
   """
@@ -136,10 +134,7 @@ async def generate_weather(interaction: QuoteBotInteraction):
   await dnd.run_generate_weather(interaction)
 
 @client.tree.command(name="weather_stats", description="Get statistics relating to the weather command")
-@app_commands.guilds(
-  discord.Object(id=GUILD_IDS[0]),
-  discord.Object(id=GUILD_IDS[1])
-)
+@app_commands.guilds(*[discord.Object(id=id) for id in GUILD_IDS_PRIVATE])
 @with_timeout(timeout=1)
 async def get_weather_stats(interaction: QuoteBotInteraction):
   """
@@ -150,10 +145,7 @@ async def get_weather_stats(interaction: QuoteBotInteraction):
   await dnd.run_weather_stats(interaction)
 
 @client.tree.command(name="reset_weather", description="Resets all weather counts to 0")
-@app_commands.guilds(
-  discord.Object(id=GUILD_IDS[0]),
-  discord.Object(id=GUILD_IDS[1])
-)
+@app_commands.guilds(*[discord.Object(id=id) for id in GUILD_IDS_PRIVATE])
 @with_timeout(timeout=1)
 async def clear_weather_stats(interaction: QuoteBotInteraction):
   """
@@ -162,10 +154,7 @@ async def clear_weather_stats(interaction: QuoteBotInteraction):
   await dnd.run_clear_weather_dict(interaction)
 
 @client.tree.command(name="add_weather", description="Adds a new weather that to the generator")
-@app_commands.guilds(
-  discord.Object(id=GUILD_IDS[0]),
-  discord.Object(id=GUILD_IDS[1])
-)
+@app_commands.guilds(*[discord.Object(id=id) for id in GUILD_IDS_PRIVATE])
 @app_commands.describe(weather="The weather you want added")
 @with_timeout(timeout=1)
 async def add_weather(interaction: QuoteBotInteraction, weather : str):
@@ -178,10 +167,7 @@ async def add_weather(interaction: QuoteBotInteraction, weather : str):
   await dnd.run_add_new_weather(interaction, weather)
 
 @client.tree.command(name="remove_weather", description="Removes an existing weather")
-@app_commands.guilds(
-  discord.Object(id=GUILD_IDS[0]),
-  discord.Object(id=GUILD_IDS[1])
-)
+@app_commands.guilds(*[discord.Object(id=id) for id in GUILD_IDS_PRIVATE])
 @app_commands.describe(weather="The weather you want removed")
 @with_timeout(timeout=1)
 async def remove_weather(interaction: QuoteBotInteraction, weather : str):
@@ -193,10 +179,7 @@ async def remove_weather(interaction: QuoteBotInteraction, weather : str):
   await dnd.run_remove_weather(interaction, weather)
 
 @client.tree.command(name="modify_weather", description="Modifies the count of an existing weather")
-@app_commands.guilds(
-  discord.Object(id=GUILD_IDS[0]),
-  discord.Object(id=GUILD_IDS[1])
-)
+@app_commands.guilds(*[discord.Object(id=id) for id in GUILD_IDS_PRIVATE])
 @app_commands.describe(weather="The weather you want to modify")
 @app_commands.describe(new_count="The new number of times the weather has been rolled")
 @with_timeout(timeout=2)
@@ -211,10 +194,7 @@ async def modify_weather(interaction: QuoteBotInteraction, weather: str, new_cou
   await dnd.run_modify_weather_counts(interaction, weather, new_count)
 
 @client.tree.command(name="get_raw_weather_json", description="Outputs the raw json file")
-@app_commands.guilds(
-  discord.Object(id=GUILD_IDS[0]),
-  discord.Object(id=GUILD_IDS[1])
-)
+@app_commands.guilds(*[discord.Object(id=id) for id in GUILD_IDS_PRIVATE])
 @with_timeout(timeout=3)
 async def output_raw_weather_json(interaction: QuoteBotInteraction):
   """
@@ -241,10 +221,7 @@ async def leave(interaction: QuoteBotInteraction):
   await music.run_leave(interaction)
 
 @client.tree.command(name="play", description="Play a youtube link")
-@app_commands.guilds(
-  discord.Object(id=GUILD_IDS[0]),
-  discord.Object(id=GUILD_IDS[1])
-)
+@app_commands.guilds(*[discord.Object(id=id) for id in GUILD_IDS_PRIVATE])
 @app_commands.describe(link="The query or link to a Youtube video")
 @with_timeout(timeout=10)
 async def play(interaction: QuoteBotInteraction, link: str):
@@ -256,10 +233,7 @@ async def play(interaction: QuoteBotInteraction, link: str):
   await music.run_play(interaction, link)
 
 @client.tree.command(name="skip", description="Skip the current song")
-@app_commands.guilds(
-  discord.Object(id=GUILD_IDS[0]),
-  discord.Object(id=GUILD_IDS[1])
-)
+@app_commands.guilds(*[discord.Object(id=id) for id in GUILD_IDS_PRIVATE])
 @with_timeout(timeout=3)
 async def skip(interaction: QuoteBotInteraction):
   """
@@ -268,10 +242,7 @@ async def skip(interaction: QuoteBotInteraction):
   await music.run_skip(interaction)
 
 @client.tree.command(name="queue", description="Lists the songs in the queue")
-@app_commands.guilds(
-  discord.Object(id=GUILD_IDS[0]),
-  discord.Object(id=GUILD_IDS[1])
-)
+@app_commands.guilds(*[discord.Object(id=id) for id in GUILD_IDS_PRIVATE])
 @with_timeout(timeout=2)
 async def list_queue(interaction: QuoteBotInteraction):
   """
@@ -282,6 +253,7 @@ async def list_queue(interaction: QuoteBotInteraction):
   await music.run_list_queue(interaction)
 
 @client.tree.command(name="clear_queue", description="Clears the songs queue")
+@app_commands.guilds(*[discord.Object(id=id) for id in GUILD_IDS_PRIVATE])
 @with_timeout(timeout=2)
 async def clear_queue(interaction: QuoteBotInteraction):
   """
@@ -290,10 +262,7 @@ async def clear_queue(interaction: QuoteBotInteraction):
   await music.run_clear_queue(interaction)
 
 @client.tree.command(name="pause", description="Pauses the current song")
-@app_commands.guilds(
-  discord.Object(id=GUILD_IDS[0]),
-  discord.Object(id=GUILD_IDS[1])
-)
+@app_commands.guilds(*[discord.Object(id=id) for id in GUILD_IDS_PRIVATE])
 @with_timeout(timeout=2)
 async def pause(interaction: QuoteBotInteraction):
   """
@@ -302,10 +271,7 @@ async def pause(interaction: QuoteBotInteraction):
   await music.run_pause(interaction)
 
 @client.tree.command(name="resume", description="Resumes the currently paused song")
-@app_commands.guilds(
-  discord.Object(id=GUILD_IDS[0]),
-  discord.Object(id=GUILD_IDS[1])
-)
+@app_commands.guilds(*[discord.Object(id=id) for id in GUILD_IDS_PRIVATE])
 @with_timeout(timeout=2)
 async def resume(interaction: QuoteBotInteraction):
   """
@@ -314,10 +280,7 @@ async def resume(interaction: QuoteBotInteraction):
   await music.run_resume(interaction)
 
 @client.tree.command(name="repeat", description="Repeatedly plays the current song")
-@app_commands.guilds(
-  discord.Object(id=GUILD_IDS[0]),
-  discord.Object(id=GUILD_IDS[1])
-)
+@app_commands.guilds(*[discord.Object(id=id) for id in GUILD_IDS_PRIVATE])
 @with_timeout(timeout=2)
 async def repeat(interaction: QuoteBotInteraction):
   """
@@ -351,7 +314,6 @@ async def repeatafterme(interaction: QuoteBotInteraction, string: str):
     """
     await quotes.run_repeat(interaction, string)
 
-# Rolls a die, die faces specified by die_num
 @client.tree.command(name="dice", description="Rolls a dice with a number of faces")
 @app_commands.describe(faces="The number of faces this dice has")
 @with_timeout(timeout=2)
