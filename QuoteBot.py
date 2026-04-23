@@ -370,8 +370,6 @@ if __name__ == "__main__":
   try:
     print("QuoteBot: Starting bot...")
     client.run(BOT_TOKEN)
-  except KeyboardInterrupt:
-    print("QuoteBot: Shutting down the bot...")
   except Exception as e:
     report_error("error starting bot (are you connected to the internet?): ", e)
     print(f"[ERROR]: run bot: Are you connected to the internet?")
