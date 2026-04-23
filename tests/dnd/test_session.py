@@ -19,7 +19,7 @@ def session():
 
 @pytest.fixture
 def session_with_die(session: DnDSession):
-  session.create_new_dice(6, "a")
+  session.create_new_die(6, "a")
   return session
 
 """
@@ -35,37 +35,56 @@ def test_initial_start_time(session: DnDSession):
   assert session.start_time == 0
 
 """
-Dice related tests
+new_die
 """
 def test_new_die_valid(session_with_die: DnDSession):
   assert session_with_die.current_session_dice
   assert len(session_with_die.current_session_dice) == 1
 
-def test_remove_die_valid(session_with_die: DnDSession):
-  assert session_with_die.current_session_dice
-  assert len(session_with_die.current_session_dice) == 1
-
-  session_with_die.remove_dice("a")
-  assert not session_with_die.current_session_dice
-
 @pytest.mark.parametrize("die_num", [1, 2, 3, 5])
 def test_new_die__num_invalid(session: DnDSession, die_num: int):
   with pytest.raises(invalid_faces_error.InvalidFacesError):
-    session.create_new_dice(die_num, "a")
+    session.create_new_die(die_num, "a")
 
 def test_new_die__alr_exists(session_with_die: DnDSession):
   with pytest.raises(die_alr_exists_error.DieAlrExistsError):
-    session_with_die.create_new_dice(6, "a")
+    session_with_die.create_new_die(6, "a")
 
-def test_remove_die__no_scenario(session_with_die: DnDSession):
-  with pytest.raises(no_dice_in_sesh_error.NoDiceInSeshError):
-    session_with_die.remove_dice("b")
-
-def test_add_die__too_many(session: DnDSession):
+def test_new_die__too_many(session: DnDSession):
   for i in range(100):
-    session.create_new_dice(7, f"{i}")
+    session.create_new_die(7, f"{i}")
 
   assert len(session.current_session_dice) == 100
 
   with pytest.raises(too_many_dice_error.TooManyDiceError):
-    session.create_new_dice(7, "101")
+    session.create_new_die(7, "101")
+
+"""
+remove_die
+"""
+def test_remove_die_valid(session_with_die: DnDSession):
+  assert session_with_die.current_session_dice
+  assert len(session_with_die.current_session_dice) == 1
+
+  session_with_die.remove_die("a")
+  assert not session_with_die.current_session_dice
+
+def test_remove_die__no_scenario(session_with_die: DnDSession):
+  with pytest.raises(no_dice_in_sesh_error.NoDiceInSeshError):
+    session_with_die.remove_die("b")
+
+"""
+list_dice
+"""
+def test_list_dice__valid(session_with_die: DnDSession):
+  result = session_with_die.list_dice()
+  assert "**a**: D**6**" in result
+
+def test_list_dice__empty(session: DnDSession):
+  with pytest.raises(no_dice_in_sesh_error.NoDiceInSeshError):
+    session.list_dice()
+
+"""
+weather_stats
+"""
+

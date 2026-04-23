@@ -60,7 +60,7 @@ async def run_new_die_instance(interaction: QuoteBotInteraction, scenario: str, 
 
   try:
     session = state.dnd_session
-    session.create_new_dice(die_num, scenario)
+    session.create_new_die(die_num, scenario)
     await safe_send(interaction, f"Created new die of the **{scenario}** (D**{die_num}**) scenario. There are now **{len(session.current_session_dice)}** dice in the session.")
   except invalid_faces_error.InvalidFacesError:
     await safe_send(interaction, f"I do not know what a D{die_num} is. Choose a die that has either 4 or 6 or more faces ya bingus.")
@@ -83,7 +83,7 @@ async def run_remove_die_instance(interaction: QuoteBotInteraction, scenario: st
   assert state.dnd_session
 
   try:
-    state.dnd_session.remove_dice(scenario)
+    state.dnd_session.remove_die(scenario)
     await safe_send(interaction, f"Dice, **{scenario}** removed. :o7: thanks for your service.")
   except no_dice_in_sesh_error.NoDiceInSeshError:
     await safe_send(interaction, f"No die of scenario **{scenario}** found.")
@@ -104,7 +104,7 @@ async def run_scenario_die(interaction: QuoteBotInteraction, scenario: str, addo
 
   # Check that the scenario exists
   session = state.dnd_session
-  current_die = session.verify_session_die_exists(scenario)
+  current_die = session.get_die(scenario)
   if not current_die:
     await safe_send(interaction, f"No die of scenario **{scenario}** found. Please create one first using /new_dice.")
     return

@@ -1,6 +1,6 @@
 import discord
-
 from discord import app_commands
+
 from classes.guild_state import GuildState
 
 class QuoteBot(discord.Client):
