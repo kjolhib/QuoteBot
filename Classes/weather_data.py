@@ -18,7 +18,6 @@ INIT_DATA = {
 }
 FILE_PATH = os.path.join(os.path.dirname(__file__), "../data/weather_probabilities.json")
 
-
 class WeatherStats(TypedDict):
   """
   For statistics related to the weather json
@@ -27,7 +26,6 @@ class WeatherStats(TypedDict):
   percentages: dict[str, float]
   most_common: str
   least_common: str
-
 
 class WeatherData():
   """

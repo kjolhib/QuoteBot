@@ -9,52 +9,6 @@ from helpers.UtilityHelpers import safe_send
 P = ParamSpec("P")
 R = TypeVar("R")
 
-# FILE_NAME = os.path.join(os.path.dirname(__file__), "../data/weather_probabilities.json")
-# INIT_DATA = {
-#       "Light Rain": 0,
-#       "Heavy Rain": 0,
-#       "Thunderstorm": 0,
-#       "Eclipse": 0,
-#       "Foggy": 0,
-#       "Cloudy": 0,
-#       "Sunny": 0,
-#       "Drought": 0,
-#       "Mana Storm": 0
-#     }
-
-# def load_weather():
-#   """
-#   Loads the weather JSON data in hash-map (dict) form, weather-number_rolled.
-#   Returns:
-#     - json object of the hash map
-#   """
-#   if not os.path.exists(FILE_NAME):
-#     with open(FILE_NAME, "w") as f:
-#       json.dump(INIT_DATA, f, indent=4)
-#   with open(FILE_NAME, "r") as f:
-#     return json.load(f)
-
-# def save_weather(data: dict[str, int]):
-#   """
-#   Saves the weather data after session end.
-#   Params:
-#     - data: the dictionary data to be saved
-#   """
-#   with open(FILE_NAME, "w") as f:
-#     json.dump(data, f, indent=4)
-
-# def get_weather_path():
-#   """
-#   Gets the file name and path
-#   """
-#   return FILE_NAME
-
-# def get_init_data():
-#   """
-#   Returns the initial weather data
-#   """
-#   return INIT_DATA
-
 def require_valid_session(func: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
   """
   Require session to be active.
