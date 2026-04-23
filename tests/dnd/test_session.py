@@ -83,8 +83,3 @@ def test_list_dice__valid(session_with_die: DnDSession):
 def test_list_dice__empty(session: DnDSession):
   with pytest.raises(no_dice_in_sesh_error.NoDiceInSeshError):
     session.list_dice()
-
-"""
-weather_stats
-"""
-

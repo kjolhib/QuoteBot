@@ -1,5 +1,4 @@
 import datetime
-import random
 import discord
 from typing import Optional
 
@@ -11,7 +10,8 @@ from helpers.UtilityHelpers import safe_send, safe_send_embed, safe_send_file
 from helpers.DnDHelpers import *
 from exceptions.error_handler import report_error
 from exceptions.dice import too_many_dice_error
-from classes import dnd_session as dsesh
+from exceptions.dnd import weather_exists_error, weather_missing_error, weather_empty_error, negative_count_error
+from classes import dnd_session as dsesh, weather_data as wd
 
 async def run_start(interaction: QuoteBotInteraction):
   """
@@ -154,28 +154,21 @@ async def run_generate_weather(interaction: QuoteBotInteraction):
   Generates a new weather from a json pool.
   The json is found in weather_probabilities.json.
   """
-  # Load weather. from DnD_helpers.py
   try:
-    data: dict[str, int]= load_weather()
-    weights: list[float] = []
-    weathers: list[str] = []
-
-    # Collect the information from the json, and weight each weather's probability by their counts.
-    # More counts = less probability of being chosen.
-    for weather, count in data.items():
-      weathers.append(weather)
-      weights.append(1/(count+1))
+    data: wd.WeatherData= wd.load_weather()
 
     # choose.
-    chosen = random.choices(weathers, weights=weights, k=1)[0]
-    data[chosen] += 1 # increment the count of the weather being chosen in the json file
-    save_weather(data)
+    chosen = data.select_weighted_random()
+    data.increment_val(chosen)
+    wd.save_weather(data)
     await safe_send(interaction, f"The weather you have rolled is **{chosen}**! is that good?")
+  except weather_empty_error.WeatherEmptyError:
+    await safe_send(interaction, f"There are no weathers to choose! Add one with /add_weather or reset it with /reset_weather")
   except Exception as e:
     await safe_send(interaction, f"Unknown error while loading/saving from weather json file. Check logs for more details.")
     report_error("generate_weather", e, "attempted to load/save weather data")
 
-async def run_weather_stats(interaction: QuoteBotInteraction):
+async def run_weather_list(interaction: QuoteBotInteraction):
   """
   Lists as an standard embed, the json file.
   Formatted as:
@@ -184,7 +177,7 @@ async def run_weather_stats(interaction: QuoteBotInteraction):
     ...
   """
   try:
-    data = load_weather()
+    data: dict[str, int] = wd.load_weather().get_data()
     embed = discord.Embed.from_dict(data)
 
     for weather, count in data.items():
@@ -195,14 +188,16 @@ async def run_weather_stats(interaction: QuoteBotInteraction):
     await safe_send(interaction, "Unknown error occured while processing weather data. Check logs for more details.")
     report_error("weather_stats", e, "attempted to process weather data")
 
-async def run_clear_weather_dict(interaction: QuoteBotInteraction):
+async def run_reset_weather_dict(interaction: QuoteBotInteraction):
   """
-  Resets the weather to default, defined as INIT_DATA in DnD_helpers.py
+  Resets the weather to default, defined as INIT_DATA in weather_data.py
   """
   try:
-    init_data = get_init_data()
-    save_weather(init_data)
+    wd.reset_json()
     await safe_send(interaction, "Weather data cleared.")
+  except FileNotFoundError as fnfe:
+    await safe_send(interaction, f"Weather probabilities JSON file was not found. Contact @chewswisely, he messed something up .^.")
+    report_error("reset_weather_dict", fnfe, "attempted to clear the weather dictionary, but the file was not found")
   except Exception as e:
     await safe_send(interaction, f"Unknown error occurred while clearing weather data. Check logs for more details.")
     report_error("clear_weather_dict", e, "attempted to clear weather data")
@@ -216,10 +211,12 @@ async def run_add_new_weather(interaction: QuoteBotInteraction, weather: str):
   # TODO: allow for the newly added weather to "persist". ie. append it to INIT_DATA
 
   try:
-    data = load_weather()
-    data[weather] = 0
-    save_weather(data)
+    data = wd.load_weather()
+    data.add_new_weather(weather)
+    wd.save_weather(data)
     await safe_send(interaction, f"Weather '{weather}' has been added.")
+  except weather_exists_error.WeatherExistsError:
+    await safe_send(interaction, f"Weather '{weather}' already exists!")
   except Exception as e:
     await safe_send(interaction, f"Unknown error while processing weather data. Check logs for more details.")
     report_error("add_new_weather", e, "attempted to add a new weather into the weather dict")
@@ -232,16 +229,13 @@ async def run_remove_weather(interaction: QuoteBotInteraction, weather: str):
   # TODO: allow for the removed weather to "persist". ie. delete it from INIT_DATA
 
   try:
-    data = load_weather()
-    if not weather in data:
-      # weather to remove doesn't exist
-      await safe_send(interaction, f"Weather {weather} is not a valid weather yet! Add it first with /add_weather!")
-      return
+    data = wd.load_weather()
 
-    count = data[weather]
-    del data[weather]
-    save_weather(data)
-    await safe_send(interaction, f"Weather {weather} removed with count {count}.")
+    count = data.remove_weather(weather)
+    wd.save_weather(data)
+    await safe_send(interaction, f"Weather '{weather}' removed with count **{count}**.")
+  except weather_missing_error.WeatherMissingError:
+    await safe_send(interaction, f"Weather '{weather}' is not a valid weather yet! Add it first with /add_weather!")
   except Exception as e:
     await safe_send(interaction, f"Unknown error occurred while removing {weather}. Check logs for more details.")
     report_error(f"remove_weather", e, f"attempting to remove: {weather}.")
@@ -255,22 +249,20 @@ async def run_modify_weather_counts(interaction: QuoteBotInteraction, weather: s
     - new_count: the new count of the weather. weather.count = new_count
   """
   try:
-    data = load_weather()
-    if not weather in data:
-      # weather to remove doesn't exist
-      await safe_send(interaction, f"Weather {weather} is not a valid weather yet! Add it first with /add_weather!")
-      return
+    data = wd.load_weather()
 
     if new_count < 0:
       # negative count
       await safe_send(interaction, f"Negative counts ({new_count}) are not allowed you forehead. Try again.")
       return
     
-    old_count = data[weather]
-    data[weather] = new_count
-    save_weather(data)
-    await safe_send(interaction, f"Weather {weather} has been modified to have count {new_count}. Previous count was {old_count}")
-
+    old_count = data.modify_weather(weather, new_count)
+    wd.save_weather(data)
+    await safe_send(interaction, f"Weather '{weather}' has been modified to have count **{new_count}**. Previous count was {old_count}.")
+  except weather_missing_error.WeatherMissingError:
+    await safe_send(interaction, f"Weather '{weather}' is not a valid weather yet! Add it first with /add_weather!")
+  except negative_count_error.NegativeCountError:
+    await safe_send(interaction, f"Counts cannot be negative: {new_count}. Choose a positive number.")
   except Exception as e:
     await safe_send(interaction, f"Unknown error occurred when modifying weather: {weather}. Check logs for more details.")
     report_error(f"modify_weather", e, f"attempting to modify: {weather}.")
@@ -280,7 +272,7 @@ async def run_output_json_file(interaction: QuoteBotInteraction) -> None:
   Outputs the raw JSON file for storage if needed.
   """
   try:
-    weather_path = get_weather_path()
+    weather_path = wd.get_weather_path()
     with open(f"{weather_path}", "rb") as f:
       file = discord.File(f, filename="weather_probabilities.json")
       await safe_send_file(interaction, file=file)

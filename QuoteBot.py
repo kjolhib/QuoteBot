@@ -133,16 +133,16 @@ async def generate_weather(interaction: QuoteBotInteraction):
   """
   await dnd.run_generate_weather(interaction)
 
-@client.tree.command(name="weather_stats", description="Get statistics relating to the weather command")
+@client.tree.command(name="list_weather", description="Get statistics relating to the weather command")
 @app_commands.guilds(*[discord.Object(id=id) for id in GUILD_IDS_PRIVATE])
-@with_timeout(timeout=1)
-async def get_weather_stats(interaction: QuoteBotInteraction):
+@with_timeout(timeout=3)
+async def get_weather_list(interaction: QuoteBotInteraction):
   """
-  Gets the 'weather_probabilities' .json file, and outputs statistics.
+  Gets the 'weather_probabilities' .json file, and outputs the list as an embed.
   Returns:
     - Embed object containing data on weather_probabilities.json
   """
-  await dnd.run_weather_stats(interaction)
+  await dnd.run_weather_list(interaction)
 
 @client.tree.command(name="reset_weather", description="Resets all weather counts to 0")
 @app_commands.guilds(*[discord.Object(id=id) for id in GUILD_IDS_PRIVATE])
@@ -151,7 +151,7 @@ async def clear_weather_stats(interaction: QuoteBotInteraction):
   """
   Clears the 'weather_probabilities' .json file, puts all counts to 0.
   """
-  await dnd.run_clear_weather_dict(interaction)
+  await dnd.run_reset_weather_dict(interaction)
 
 @client.tree.command(name="add_weather", description="Adds a new weather that to the generator")
 @app_commands.guilds(*[discord.Object(id=id) for id in GUILD_IDS_PRIVATE])
