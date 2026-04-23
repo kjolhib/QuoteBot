@@ -188,6 +188,7 @@ async def run_weather_list(interaction: QuoteBotInteraction):
     await safe_send(interaction, "Unknown error occured while processing weather data. Check logs for more details.")
     report_error("weather_stats", e, "attempted to process weather data")
 
+@require_valid_session
 async def run_reset_weather_dict(interaction: QuoteBotInteraction):
   """
   Resets the weather to default, defined as INIT_DATA in weather_data.py
@@ -202,6 +203,7 @@ async def run_reset_weather_dict(interaction: QuoteBotInteraction):
     await safe_send(interaction, f"Unknown error occurred while clearing weather data. Check logs for more details.")
     report_error("clear_weather_dict", e, "attempted to clear weather data")
 
+@require_valid_session
 async def run_add_new_weather(interaction: QuoteBotInteraction, weather: str):
   """
   Adds a new weather to weather_probabilities.json file.
@@ -221,6 +223,7 @@ async def run_add_new_weather(interaction: QuoteBotInteraction, weather: str):
     await safe_send(interaction, f"Unknown error while processing weather data. Check logs for more details.")
     report_error("add_new_weather", e, "attempted to add a new weather into the weather dict")
 
+@require_valid_session
 async def run_remove_weather(interaction: QuoteBotInteraction, weather: str):
   """
   Removes weather from weather_probabilities.json file.
@@ -241,6 +244,7 @@ async def run_remove_weather(interaction: QuoteBotInteraction, weather: str):
     report_error(f"remove_weather", e, f"attempting to remove: {weather}.")
     return
 
+@require_valid_session
 async def run_modify_weather_counts(interaction: QuoteBotInteraction, weather: str, new_count: int):
   """
   Modify the count of a given weather.
