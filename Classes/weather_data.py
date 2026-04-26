@@ -31,6 +31,18 @@ class WeatherStats():
   least_common: str
 
   def to_embed(self) -> de:
+    """
+    Turns the attributes of this class into a discord embed.
+
+    Returns:
+      Embed: 
+      
+      Format:
+        "Total Rolls": total_rolls
+        "Percentages": {weather: percentage_rolled}
+        "Most Common": most_common
+        "Least Common": least_common
+    """
     embed = de(title="Statistics regarding weather rolls.", colour=dc.blue())
     embed.add_field(name="Total Rolls", value=self.total_rolls)
     embed.add_field(name="Percentages", value="\n".join(f"{k}: {round(v, 2)}" for k, v in self.percentages.items()) or None)
@@ -41,6 +53,7 @@ class WeatherStats():
 class WeatherData():
   """
   Contains data in JSON format: dict[str, int].
+
   Has a weighted random generator that generates a random weather, and statistics related to it.
   """
   def __init__(self, data: dict[str, int], fp: str=FILE_PATH):
@@ -50,9 +63,10 @@ class WeatherData():
   def select_weighted_random(self) -> str:
     """
     Pseudo-weighted random generator.
+
     The more often the weather is chosen before (higher int value), the less often it gets chosen.
     Returns:
-      - string: the weather that got chosen
+      string: the weather that got chosen
     """
     if not self.data:
       raise weather_empty_error.WeatherEmptyError(f"[select_weighted_random]: Weather dictionary is empty.")
@@ -72,11 +86,15 @@ class WeatherData():
   def statistics(self) -> WeatherStats:
     """
     Gets statistics related to the rolls.
+    
     Returns:
-      - Total rolls
-      - Percentages
-      - Most common weather
-      - Least common weather
+      WeatherStats class: Format: 
+      (
+        Total rolls
+        Percentages
+        Most common weather
+        Least common weather
+      )
     """
     total = sum(self.data.values())
     if total == 0:
@@ -96,7 +114,9 @@ class WeatherData():
   def increment_val(self, w: str) -> None:
     """
     Increments the int value of a weather.
-    Ie. This weather has now been rolled another 1 time.
+
+    Raises:
+      WeatherMissingError: weather is not found
     """
     if w not in self.data:
       raise weather_missing_error.WeatherMissingError(f"[increment_val]: Weather {w} not found in weather data.")
@@ -105,8 +125,11 @@ class WeatherData():
   def add_new_weather(self, w: str) -> None:
     """
     Adds a weather to the dict.
+    
+    Args:
+      w: the weather string to add
     Raises:
-      - WeatherExistsError: if weather already exists
+      WeatherExistsError: if weather already exists
     """
     if w in self.data:
       raise weather_exists_error.WeatherExistsError(f"[add_new_weather]: Weather {w} already exists.")
@@ -116,10 +139,13 @@ class WeatherData():
   def remove_weather(self, w: str) -> int:
     """
     Removes a specified weather.
-    Raises:
-      - WeatherMissingError: if weather does not exist
+    
+    Args:
+      w: the weather to remove
     Returns:
-      - Counter: the int value related to the weather key before being removed
+      counter: the int value related to the weather key before being removed
+    Raises:
+      WeatherMissingError: if weather does not exist
     """
     if w not in self.data:
       raise weather_missing_error.WeatherMissingError(f"[remove_weather]: Weather {w} missing from dictionary.")
@@ -129,6 +155,17 @@ class WeatherData():
     return c
 
   def modify_weather(self, w: str, new_c: int) -> int:
+    """
+    Modifies the specified weather's count.
+
+    Args:
+      w: the weather to modify
+      new_c: the new count to modify the weather to. `w.count = new_c`
+
+    Raises:
+      WeatherMissingError: attempting to modify a weather that doesn't exist
+      NegativeCountError: attempting to modify a weather's count to negative
+    """
     if w not in self.data:
       raise weather_missing_error.WeatherMissingError(f"[modify_weather]: Weather {w} does not exist in dictionary.")
     if new_c < 0:
@@ -137,15 +174,29 @@ class WeatherData():
     self.data[w] = new_c
     return old_c
 
-  def resetdata(self) -> None:
+  def reset_data(self) -> None:
     """
     Resets the current .data to the initial data.
-    Mostly here for debugging.
+    
+    Mostly here for debugging and testing.
+
     In reality, the discord api will interact directly with the file, with load/save_weather.
     """
     self.data = get_init_data().data
 
   def list_to_embed(self) -> de:
+    """
+    Turns the weather data attribute into a discord embed.
+
+    Returns:
+      Embed: 
+      
+      Format:
+        {
+          weather: count,
+          ...
+        }
+    """
     embed = de(title="Statistics regarding weather rolls.", colour=dc.blue())
     embed = de.from_dict(self.data)
 
@@ -159,19 +210,23 @@ def reset_json(fp: str=FILE_PATH) -> None:
   """
   save_weather(get_init_data(), fp)
 
-def get_weather_path():
+def get_weather_path() -> str:
   """
-  Gets the file name and path
+  Gets the file name and path that contains this weather.
+
+  Should never be called except by testing. 
+
+  The weather path is defaulted to data/weather_probabilities.json.
   """
   return FILE_PATH
 
 def get_init_data() -> WeatherData:
   """
-  Returns the initial weather data
+  Returns the initial weather data.
   """
   return WeatherData(INITDATA.copy()) # avoid mutating
 
-def load_weather(fp: str=FILE_PATH):
+def load_weather(fp: str=FILE_PATH) -> WeatherData:
   """
   Loads the weather JSON data in hash-map (dict) form, weather-number_rolled.
   If no file exists, re-creates it with initial data.
@@ -191,9 +246,9 @@ def load_weather(fp: str=FILE_PATH):
 def save_weather(wd: WeatherData, fp: str=FILE_PATH):
   """
   Saves the weather data into a file, if not specified, default to data/weather_probabilities.json.
-  Params:
-    - wd: the WeatherData object to be saved
-    - fp: optional. path to the .json file
+  Args:
+    wd: the WeatherData object to be saved
+    fp: optional. path to the .json file
   """
   with open(fp, "w") as f:
     json.dump(wd.data, f, indent=4)
