@@ -13,6 +13,12 @@ class DnDSession:
     self.current_session_dice : list[Dice] = []
 
   def create_new_die(self, faces: int, scenario: str) -> None:
+    """
+    Creates a new die of a given scenario, with given faces.
+    Params:
+      - faces: the number of faces on this die
+      - scenario: the name/identification of this die. Used for rolling this specific die
+    """
     self._verify_die_creation(scenario, faces) # raises error if scenario is invalid, or too many dice
     new_dice = Dice(scenario, int(faces))
     self.current_session_dice.append(new_dice)
@@ -66,4 +72,3 @@ class DnDSession:
 
     if isinstance(self.get_die(scenario), Dice):
       raise die_alr_exists_error.DieAlrExistsError(f"Dice with this scenario name: {scenario}, already exists.")
-

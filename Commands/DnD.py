@@ -177,11 +177,8 @@ async def run_weather_list(interaction: QuoteBotInteraction):
     ...
   """
   try:
-    data: dict[str, int] = wd.load_weather().get_data()
-    embed = discord.Embed.from_dict(data)
-
-    for weather, count in data.items():
-      embed.add_field(name=weather, value=str(count), inline=False)
+    data= wd.load_weather()
+    embed = data.list_to_embed()
     
     await safe_send_embed(interaction, embeds=embed)
   except Exception as e:
@@ -287,3 +284,20 @@ async def run_output_json_file(interaction: QuoteBotInteraction) -> None:
   except Exception as e:
     await safe_send(interaction, "Outputting file failed. Check logs for more details.")
     report_error("output_json_file", e, "attempting to output weather_probabilities.json file.")
+
+async def run_weather_stats(interaction: QuoteBotInteraction):
+  """
+  Returns statistics about the weather rolls. 
+  Outputs in embed format similarly to list_weather.
+  """
+  try:
+    data = wd.load_weather()
+
+    stats = data.statistics()
+    embed = stats.to_embed()
+
+    await safe_send_embed(interaction, embed)
+
+  except Exception as e:
+    await safe_send(interaction, "Unknown error occurred. Check logs for more details")
+    report_error("run_weather_stats", e, "attempted to run statistics on the weaather")

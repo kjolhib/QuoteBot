@@ -204,6 +204,17 @@ async def output_raw_weather_json(interaction: QuoteBotInteraction):
   """
   await dnd.run_output_json_file(interaction)
 
+@client.tree.command(name="weather_statistics", description="Outputs the raw json file")
+@app_commands.guilds(*[discord.Object(id=id) for id in GUILD_IDS_PRIVATE])
+@with_timeout(timeout=2)
+async def weather_statistics(interaction: QuoteBotInteraction):
+  """
+  Outputs statistics regarding the weather rolled.
+  Returns:
+    - String that details: total rolls, percentages, most/least common
+  """
+  await dnd.run_weather_stats(interaction)
+
 @client.tree.command(name="join", description="Joins the vc the user is in")
 @with_timeout(timeout=2)
 async def join(interaction: QuoteBotInteraction):
