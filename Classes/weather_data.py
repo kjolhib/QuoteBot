@@ -175,9 +175,11 @@ def load_weather(fp: str=FILE_PATH):
   """
   Loads the weather JSON data in hash-map (dict) form, weather-number_rolled.
   If no file exists, re-creates it with initial data.
+  
+  Args:
+    fp: optional. path to the .json file
   Returns:
-    - JSON object of the hash map
-    - fp: optional. path to the .json file
+    JSON object of the hash map
   """
   if not os.path.exists(fp):
     with open(fp, "w") as f:

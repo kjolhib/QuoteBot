@@ -4,7 +4,7 @@ from typing import Optional
 
 from interaction_type import QuoteBotInteraction
 
-from exceptions.dice import die_alr_exists_error, no_dice_in_sesh_error, invalid_faces_error
+from exceptions.dice import die_alr_exists_error, invalid_faces_error, no_die_in_sesh_error
 from helpers.TimezoneHelpers import format_AEST
 from helpers.UtilityHelpers import safe_send, safe_send_embed, safe_send_file
 from helpers.DnDHelpers import *
@@ -16,7 +16,8 @@ from classes import dnd_session as dsesh, weather_data as wd
 async def run_start(interaction: QuoteBotInteraction):
   """
   Starts a DnD session.
-  Creates one if not active.
+
+  Creates one if not active. If already active, sends a relevant message saying so.
   Sets the guild's dnd_session variable to the newly created class DnDSession.
   """
   state = interaction.client.get_guild_state(str(interaction.guild_id))
@@ -25,9 +26,7 @@ async def run_start(interaction: QuoteBotInteraction):
     return
   
   # Create new class
-  state.dnd_session = dsesh.DnDSession()
-  state.dnd_session.is_active = True
-  state.dnd_session.start_time = interaction.created_at.timestamp()
+  state.dnd_session = dsesh.DnDSession(True, interaction.created_at.timestamp())
   human_readable_time = format_AEST(interaction.created_at, "%H:%M:%S")
   await safe_send(interaction, f"New session started at {human_readable_time}.")
 
@@ -35,6 +34,7 @@ async def run_start(interaction: QuoteBotInteraction):
 async def run_end(interaction: QuoteBotInteraction):
   """
   Ends a DnD session.
+
   Clears the guild's dnd_session.
   """
   state = interaction.client.get_guild_state(str(interaction.guild_id))
@@ -50,10 +50,16 @@ async def run_end(interaction: QuoteBotInteraction):
   await safe_send(interaction, f"Session ended after {human_readable_time} seconds.")
 
 @require_valid_session
-async def run_new_die_instance(interaction: QuoteBotInteraction, scenario: str, die_num: int):
+async def run_new_die(interaction: QuoteBotInteraction, scenario: str, die_num: int):
   """
   Creates a new dice instance.
-  If not active session, ignore.
+
+  Requires dnd session to be active.
+  Calls dnd_session's create_new_die.
+
+  Args:
+    scenario: the name of this dice, and usually at what time/instance it would be used in
+    die_num: the number of faces on this die
   """
   state = interaction.client.get_guild_state(str(interaction.guild_id))
   assert state.dnd_session
@@ -76,8 +82,14 @@ async def run_new_die_instance(interaction: QuoteBotInteraction, scenario: str, 
 async def run_remove_die_instance(interaction: QuoteBotInteraction, scenario: str):
   """
   Removes a given die.
-  Params:
-    - scenario: the die we want to remove from the current session
+
+  Calls dnd_session's remove_die.
+
+  Args:
+    scenario: the die we want to remove from the current session
+
+  Raises:
+    NoDiceInSeshError: if the scenario doesn't exist in the current session
   """
   state = interaction.client.get_guild_state(str(interaction.guild_id))
   assert state.dnd_session
@@ -85,19 +97,26 @@ async def run_remove_die_instance(interaction: QuoteBotInteraction, scenario: st
   try:
     state.dnd_session.remove_die(scenario)
     await safe_send(interaction, f"Dice, **{scenario}** removed. :o7: thanks for your service.")
-  except no_dice_in_sesh_error.NoDiceInSeshError:
+  except no_die_in_sesh_error.NoDieInSeshError:
     await safe_send(interaction, f"No die of scenario **{scenario}** found.")
   except Exception as e:
     await safe_send(interaction, f"Unknown error occurred when removing dice.")
     report_error("run_remove_die_instace", e, f"attempted to remove dice of scenario {scenario}")
 
 @require_valid_session
-async def run_scenario_die(interaction: QuoteBotInteraction, scenario: str, addon: Optional[int]=0):
+async def run_instance_die(interaction: QuoteBotInteraction, scenario: str, addon: Optional[int]=0):
   """
-  Given a specific DnD die name, roll it, with optional addon
-  Params:
-    - scenario: the name of the die
-    - addon: optional. adds this value to the result of the die roll
+  Given a specific DnD die name, roll it, with optional addon.
+
+  The addon is defaulted to 0. 
+  The calculation is as follows: roll = choose_random(dice) + addon. Can accept negative addons.
+
+  Args:
+    scenario: the name of the die
+    addon: optional. adds this value to the result of the die roll
+
+  Returns:
+    The roll + addon of the die.
   """
   state = interaction.client.get_guild_state(str(interaction.guild_id))
   assert state.dnd_session
@@ -132,9 +151,15 @@ async def run_scenario_die(interaction: QuoteBotInteraction, scenario: str, addo
   await safe_send(interaction, print_msg)
 
 @require_valid_session
-async def run_list_dice(interaction: QuoteBotInteraction):
+async def run_list_die(interaction: QuoteBotInteraction):
   """
-  Lists all scenario dice that exist.
+  Lists all scenario die that exist.
+
+  Returns:
+    A list of die that the current session holds.
+
+  Raises:
+    NoDiceInSeshError: there are 0 dice created in the current session.
   """
   # checks session active
   state = interaction.client.get_guild_state(str(interaction.guild_id))
@@ -144,7 +169,7 @@ async def run_list_dice(interaction: QuoteBotInteraction):
   try:
     print_msg = session.list_dice() # raises error if no dice in session
     await safe_send(interaction, print_msg)
-  except no_dice_in_sesh_error.NoDiceInSeshError as e:
+  except no_die_in_sesh_error.NoDieInSeshError as e:
     await safe_send(interaction, str(e))
     return
 
@@ -152,7 +177,16 @@ async def run_list_dice(interaction: QuoteBotInteraction):
 async def run_generate_weather(interaction: QuoteBotInteraction):
   """
   Generates a new weather from a json pool.
-  The json is found in weather_probabilities.json.
+
+  The json is found in data/weather_probabilities.json.
+
+  Returns:
+    A pseudo-randomly generated weather.
+
+    Weighted by the more often it is chosen before, it less likely it'd be chosen again.
+
+  Raises:
+    WeatherEmptyError: there are no weathers to in the json.
   """
   try:
     data: wd.WeatherData= wd.load_weather()
@@ -171,10 +205,12 @@ async def run_generate_weather(interaction: QuoteBotInteraction):
 async def run_weather_list(interaction: QuoteBotInteraction):
   """
   Lists as an standard embed, the json file.
-  Formatted as:
-    <weather>
-      <count>
-    ...
+  
+  Returns:
+    A list of all the weathers and the times they've been rolled.
+
+    Format:
+      weather: times_rolled
   """
   try:
     data= wd.load_weather()
@@ -188,7 +224,10 @@ async def run_weather_list(interaction: QuoteBotInteraction):
 @require_valid_session
 async def run_reset_weather_dict(interaction: QuoteBotInteraction):
   """
-  Resets the weather to default, defined as INIT_DATA in weather_data.py
+  Resets the weather to default, defined as INIT_DATA in weather_data.py.
+
+  Raises:
+    FileNotFoundError: data/weather_probabilities.json was not found. Should never happen in practice unless I accidentally deleted it.
   """
   try:
     wd.reset_json()
@@ -204,8 +243,13 @@ async def run_reset_weather_dict(interaction: QuoteBotInteraction):
 async def run_add_new_weather(interaction: QuoteBotInteraction, weather: str):
   """
   Adds a new weather to weather_probabilities.json file.
+  
   Persists across sessions.
+  
   Does NOT modify INIT_DATA.
+
+  Raises:
+    WeatherExistsError: the weather already exists in the json.
   """
   # TODO: allow for the newly added weather to "persist". ie. append it to INIT_DATA
 
@@ -224,7 +268,11 @@ async def run_add_new_weather(interaction: QuoteBotInteraction, weather: str):
 async def run_remove_weather(interaction: QuoteBotInteraction, weather: str):
   """
   Removes weather from weather_probabilities.json file.
-  Does NOT modify INIT_DATA
+
+  Does NOT modify INIT_DATA.
+
+  Raises:
+    WeatherMissingError: the weather to remove doesn't exist in the json.
   """
   # TODO: allow for the removed weather to "persist". ie. delete it from INIT_DATA
 
@@ -245,9 +293,14 @@ async def run_remove_weather(interaction: QuoteBotInteraction, weather: str):
 async def run_modify_weather_counts(interaction: QuoteBotInteraction, weather: str, new_count: int):
   """
   Modify the count of a given weather.
-  Params:
-    - weather: the name of the weather to be modified
-    - new_count: the new count of the weather. weather.count = new_count
+
+  Args:
+    weather: the name of the weather to be modified.
+    new_count: the new count of the weather. weather -> new_count.
+
+  Raises:
+    WeatherMissingError: weather to modify doesn't exist.
+    NegativeCountError: the new_count is negative, a weather being rolled negative times doesn't make sense.
   """
   try:
     data = wd.load_weather()
@@ -271,6 +324,9 @@ async def run_modify_weather_counts(interaction: QuoteBotInteraction, weather: s
 async def run_output_json_file(interaction: QuoteBotInteraction) -> None:
   """
   Outputs the raw JSON file for storage if needed.
+
+  Raises:
+    FileNotFoundError: data/weather_probabilities.json isn't found
   """
   try:
     weather_path = wd.get_weather_path()
@@ -287,8 +343,18 @@ async def run_output_json_file(interaction: QuoteBotInteraction) -> None:
 
 async def run_weather_stats(interaction: QuoteBotInteraction):
   """
-  Returns statistics about the weather rolls. 
+  Returns statistics about the weather rolls.
+
   Outputs in embed format similarly to list_weather.
+
+  Returns:
+    An embed containing statistics:
+
+    Formatted:
+      total_rolls: int
+      percentages: {weather: percentage_rolled}
+      most_common: string
+      least_common: string
   """
   try:
     data = wd.load_weather()

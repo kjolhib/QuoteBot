@@ -85,7 +85,7 @@ async def new_die(interaction: QuoteBotInteraction, scenario: str, faces: int):
     - scenario: the scenario the die would be used in, is weighted
     - die_num: the number of faces this die has. num != 4 and num > 5
   """
-  await dnd.run_new_die_instance(interaction, scenario, faces)
+  await dnd.run_new_die(interaction, scenario, faces)
 
 @client.tree.command(name="remove_die", description="Deletes an instace die from this session")
 @app_commands.describe(scenario="What is the scenario name of the die you want to remove?")
@@ -110,7 +110,7 @@ async def s_dice(interaction: QuoteBotInteraction, scenario: str, addon: Optiona
   Params:
     - scenario: the scenario that dictates the die
   """
-  await dnd.run_scenario_die(interaction, scenario, addon)
+  await dnd.run_instance_die(interaction, scenario, addon)
 
 @client.tree.command(name="list_dice", description="Lists all the instances of dice")
 @with_timeout(timeout=2)
@@ -120,7 +120,7 @@ async def list_dice(interaction: QuoteBotInteraction):
   Returns:
     - A list[str] of all dice created.
   """
-  await dnd.run_list_dice(interaction)
+  await dnd.run_list_die(interaction)
 
 @client.tree.command(name="weather", description="Generate a random weather")
 @app_commands.guilds(*[discord.Object(id=id) for id in GUILD_IDS_PRIVATE])

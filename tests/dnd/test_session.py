@@ -4,7 +4,7 @@ from classes.dnd_session import DnDSession
 from exceptions.dice import (
   die_alr_exists_error,
   invalid_faces_error,
-  no_dice_in_sesh_error,
+  no_die_in_sesh_error,
   too_many_dice_error
 )
 
@@ -70,7 +70,7 @@ def test_remove_die_valid(session_with_die: DnDSession):
   assert not session_with_die.current_session_dice
 
 def test_remove_die__no_scenario(session_with_die: DnDSession):
-  with pytest.raises(no_dice_in_sesh_error.NoDiceInSeshError):
+  with pytest.raises(no_die_in_sesh_error.NoDieInSeshError):
     session_with_die.remove_die("b")
 
 """
@@ -81,5 +81,5 @@ def test_list_dice__valid(session_with_die: DnDSession):
   assert "**a**: D**6**" in result
 
 def test_list_dice__empty(session: DnDSession):
-  with pytest.raises(no_dice_in_sesh_error.NoDiceInSeshError):
+  with pytest.raises(no_die_in_sesh_error.NoDieInSeshError):
     session.list_dice()

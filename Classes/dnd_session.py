@@ -1,16 +1,16 @@
 from classes.dice import Dice
 from helpers.DiceHelpers import check_die_faces
-from exceptions.dice import too_many_dice_error
-from exceptions.dice import die_alr_exists_error, no_dice_in_sesh_error, invalid_faces_error
+from exceptions.dice import no_die_in_sesh_error, too_many_dice_error
+from exceptions.dice import die_alr_exists_error, invalid_faces_error
 
 class DnDSession:
   """
   A DnD session class. Stores information about the current session.
   """
-  def __init__(self):
-    self.is_active: bool = False
-    self.start_time : float = 0
-    self.current_session_dice : list[Dice] = []
+  def __init__(self, is_active: bool = False, start_time: float = 0, csd: list[Dice] = []):
+    self.is_active: bool = is_active
+    self.start_time : float = start_time
+    self.current_session_dice : list[Dice] = csd
 
   def create_new_die(self, faces: int, scenario: str) -> None:
     """
@@ -35,7 +35,7 @@ class DnDSession:
   def remove_die(self, scenario: str) -> None:
     die = self.get_die(scenario)
     if not die:
-      raise no_dice_in_sesh_error.NoDiceInSeshError
+      raise no_die_in_sesh_error.NoDieInSeshError
     
     self.current_session_dice = [d for d in self.current_session_dice if d.scenario != scenario]
 
@@ -49,7 +49,7 @@ class DnDSession:
         ...
     """
     if not self.current_session_dice:
-      raise no_dice_in_sesh_error.NoDiceInSeshError("No dice in session.")
+      raise no_die_in_sesh_error.NoDieInSeshError("No dice in session.")
     
     print_msg = "**__Dice Created__:**\n"
     for die in self.current_session_dice:
