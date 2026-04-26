@@ -53,7 +53,9 @@ Timeout factory
 """
 def with_timeout(timeout: float = 7.0):
   """
-  Factory decorator to wrap a command with timeout handler
+  Factory decorator to wrap a command with timeout handler.
+
+  Default timeout is 7.
   """
   def decorator(func: Callable[P, Awaitable[None]]):
     @wraps(func)
@@ -81,8 +83,10 @@ def with_timeout(timeout: float = 7.0):
 def bot_require_voice_client(func: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
   """
   Require voice factory.
+
   Functools is used to preserve discord.py's / command's ability to recognize the original function's signature for parsing arguments.
-  Checks if a user is in vc.  
+  
+  Checks if a user is in vc.
   """
   @wraps(func)
   async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:

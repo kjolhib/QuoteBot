@@ -210,7 +210,10 @@ async def run_weather_list(interaction: QuoteBotInteraction):
     A list of all the weathers and the times they've been rolled.
 
     Format:
-      weather: times_rolled
+      {
+        weather: times_rolled,
+        ...
+      }
   """
   try:
     data= wd.load_weather()

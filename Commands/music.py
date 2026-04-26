@@ -12,6 +12,10 @@ from exceptions.error_handler import report_error
 async def run_join(interaction: QuoteBotInteraction):
   """
   Joins vc.
+  Raises:
+    UserNotInVcError: user who invoked this command is not in vc
+    UserInStageVcError: user who invoked this command is in a stage vc
+    JoinVcError: an unknown error occurred when attempting to join vc. Uncaught error.
   """
   state = interaction.client.get_guild_state(str(interaction.guild_id))
   try:
@@ -33,9 +37,17 @@ async def run_join(interaction: QuoteBotInteraction):
 async def run_play(interaction: QuoteBotInteraction, query: str):
   """
   Plays a song based on query.
+  
   Uses ytdlp library to download.
-  Params:
-    - query: the query or a link. Note, currently non-standard youtube links do NOT return any search results. 
+  Args:
+    query: the query or a link. 
+    
+  Raises:
+    UserNotInVcError: user who invoked this command is not in vc
+    UserInStageVcError: user who invoked this command is in a stage vc
+    JoinVcError: an unknown error occurred when attempting to join vc. Uncaught error.
+
+  Note, currently non-standard youtube links do NOT return any search results. 
   """
   # TODO: Modify the query if it's a non-standard yt link to a standard yt link. Probs use regex or otherwise to match and replace standard yt link
   # TODO: allow spotify links to playlists/song (?)
@@ -100,6 +112,8 @@ async def run_play(interaction: QuoteBotInteraction, query: str):
 async def run_skip(interaction: QuoteBotInteraction) -> None:
   """
   Skips the currently playing song.
+  
+  Requires the bot to be in a VC.
   """
   state = interaction.client.get_guild_state(str(interaction.guild_id))
   if not state or not state.voice_client or not state.voice_client.is_playing():
@@ -152,7 +166,11 @@ async def run_resume(interaction: QuoteBotInteraction):
 async def run_leave(interaction: QuoteBotInteraction) -> None:
   """
   Leaves the VC.
+
   Clears the queue.
+
+  Raises:
+    ClearQueueError: something happened while attempting to clear the queue. Uncaught error
   """
   state = interaction.client.get_guild_state(str(interaction.guild_id))
 
@@ -171,6 +189,9 @@ async def run_leave(interaction: QuoteBotInteraction) -> None:
 async def run_clear_queue(interaction: QuoteBotInteraction) -> None:
   """
   Clears the queue of all songs.
+
+  Raises:
+    ClearQueueError: uncaught error attempting to clear music queue.
   """
   state = interaction.client.get_guild_state(str(interaction.guild_id))
 
@@ -188,8 +209,8 @@ async def run_clear_queue(interaction: QuoteBotInteraction) -> None:
 async def run_repeat(interaction: QuoteBotInteraction):
   """
   Loops the current song if not looping, if looping already, stop looping.
-  Sets the guild state's repeat field to true.
-
+  
+  Sets the guild state's `repeat` field to true.
   """
   state = interaction.client.get_guild_state(str(interaction.guild_id))
   if not state or not state.current:
@@ -204,6 +225,13 @@ async def run_repeat(interaction: QuoteBotInteraction):
 async def run_list_queue(interaction: QuoteBotInteraction):
   """
   Lists the songs in queue.
+
+  Returns:
+    A string containing information about the queue.
+    Format:
+      Currently playing {song}
+      Current Queue:
+        ...
   """
   state = interaction.client.get_guild_state(str(interaction.guild_id))
   
@@ -219,7 +247,6 @@ async def run_list_queue(interaction: QuoteBotInteraction):
     result += f"{idx}. {title}\n"
   
   await safe_send(interaction, result)
-
 
 """
 Helper functions

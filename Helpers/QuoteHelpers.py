@@ -8,13 +8,14 @@ from exceptions.utils.lt_min_count_error import LTMinCountError
 def choose_random_message(messages: List[discord.Message], min_count: int):
   """
   Choose a random message
-  Params:
-    - messages: list of messages
-    - min_count: if the messages found are < this number, don't try to pick a random one
+  Args:
+    messages: list of messages
+    min_count: if the messages found are < this number, don't try to pick a random one
   Returns:
-    - message dict if found
-    - None if no messages
-    - 401 if messages < min_count
+    message dict if found
+    None if no messages
+  Raises:
+    LTMinCountError: if the user sent messages < `min_count`.
   """
   if not messages:
     return None
@@ -36,7 +37,7 @@ def choose_random_message(messages: List[discord.Message], min_count: int):
 async def get_last_n_messages(channel: discord.abc.Messageable, limit: Optional[int], user: discord.Member):
   """
   Returns:
-    - List of messages sent by user
+    List of messages sent by user.
   """
   return [
     msg async for msg in channel.history(limit=limit) 

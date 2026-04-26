@@ -5,7 +5,14 @@ from exceptions.dice import die_alr_exists_error, invalid_faces_error
 
 class DnDSession:
   """
-  A DnD session class. Stores information about the current session.
+  A DnD session class.
+  
+  Stores information about the current session.
+
+  Attributes:
+    `is_active`: whether or not this session is active.
+    `start_time`: the time the session started.
+    `current_session_dice`: a list of all dice in the current session.
   """
   def __init__(self, is_active: bool = False, start_time: float = 0, csd: list[Dice] = []):
     self.is_active: bool = is_active
@@ -15,7 +22,7 @@ class DnDSession:
   def create_new_die(self, faces: int, scenario: str) -> None:
     """
     Creates a new die of a given scenario, with given faces.
-    Params:
+    Args:
       - faces: the number of faces on this die
       - scenario: the name/identification of this die. Used for rolling this specific die
     """
@@ -27,12 +34,17 @@ class DnDSession:
     """
     Given a scenario, verifies that a die with the same scenario exists.
     Returns:
-      - the die if it exists
-      - None if it does not exist
+      The die if it exists, None otherwise.
     """
     return next((d for d in self.current_session_dice if d.scenario == scenario), None)
 
   def remove_die(self, scenario: str) -> None:
+    """
+    Removes the specified die from the session.
+
+    Raises:
+      NoDieInSeshError: if no die with specified scenario exists.
+    """
     die = self.get_die(scenario)
     if not die:
       raise no_die_in_sesh_error.NoDieInSeshError
@@ -43,10 +55,14 @@ class DnDSession:
     """
     Lists the dice in the current session.
     Returns:
-      - string containing the dice in the following format:
+      String containing the dice:
+      Format:
         Dice Created:
         {scenario}: D({faces})
         ...
+
+    Raises:
+      NoDieInSeshError: session does not have any dice created.
     """
     if not self.current_session_dice:
       raise no_die_in_sesh_error.NoDieInSeshError("No dice in session.")
@@ -60,9 +76,13 @@ class DnDSession:
   def _verify_die_creation(self, scenario: str, faces: int) -> None:
     """
     Verifies:
-      - there are not too many dice in the session
-      - faces == 4 || faces >= 6
-      - a die with the same scenario does not already exist
+      - there are not too many dice in the session: `faces == 4 || faces >= 6`.
+      - a die with the same scenario does not already exist.
+
+    Raises:
+      InvalidFacesError: non-valid faces specified.
+      TooManyDiceError: more than 100 dice created in this session.
+      DieAlrExistsError: a die with the specified scenario already exists.
     """
     if not check_die_faces(faces):
       raise invalid_faces_error.InvalidFacesError

@@ -10,8 +10,10 @@ from exceptions.timezone import date_format_error
 def convert_to_AEST(utc_dt: datetime) -> datetime:
     """
     Converts a UTC datetime to Australia/Sydney timezone.
-    Input: timezone-aware or naive UTC datetime.
-    Output: timezone-aware datetime in AEST/AEDT.
+    Args:
+      utc_dt: timezone-aware or naive UTC datetime.
+    Returns:
+      timezone-aware datetime in AEST/AEDT.
     """
     if utc_dt.tzinfo is None:
         utc_dt = utc_dt.replace(tzinfo=ZoneInfo("UTC"))
@@ -27,6 +29,13 @@ def format_AEST(utc_dt: datetime, fmt: str = "%Y-%m-%d %H:%M:%S %Z") -> str:
 def get_current_date(time_str: str, date_str: str | None, origin_country: str, origin_city: str):
   """
   Gets the origin time and date.
+  Args:
+    date_str: the date in string format. If none, use current date.
+    origin_country: the country to convert from.
+    origin_city: the city to convert from.
+  Raises:
+    TimeFormatError: the time is not in the format HH:MM
+    DateFormatError: date is not in the format DD/MM/YY
   """
     # Get zone info object
   zone = ZoneInfo(f"{origin_country}/{origin_city}")
@@ -71,9 +80,7 @@ def convert_time(
   """
   Converts a time from a given time, origin country/city, target country/city to another time.
   Returns:
-    - 401: Date not in format DD/MM/YYYY
-    - 402: Time not in format HH:MM
-    - 403: Error converting timezones. Check logs for more details.
+    The converted time in string format.
   """
   origin_country = capwords(origin_country).replace(" ", "_")
   origin_city = capwords(origin_city).replace(" ", "_")

@@ -14,6 +14,9 @@ from helpers.TimezoneHelpers import convert_time
 async def run_d(interaction: QuoteBotInteraction, die_num: int, addon: Optional[int]=0):
   """
   Rolls a die with die_num faces and adds addon to the result.
+
+  Returns:
+    roll + addon
   """
   try:
     msg = compute_roll(die_num, addon)

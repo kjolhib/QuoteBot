@@ -12,6 +12,14 @@ class QuoteBot(discord.Client):
     self._guild_states: dict[str, GuildState] = {}
 
   def get_guild_state(self, guild_id: str) -> GuildState:
+    """
+    Gets the GuildState class from the specified `guild_id`.
+
+    Args:
+      guild_id: the id of the guild.
+    Returns:
+      GuildState: instance of the current guild
+    """
     if guild_id not in self._guild_states:
       self._guild_states[guild_id] = GuildState()
     return self._guild_states[guild_id]

@@ -12,10 +12,13 @@ from exceptions.error_handler import report_error
 async def run_repeat(interaction: QuoteBotInteraction, string: str):
   """
   Repeats the string specified by the user.
+
   Used to debug and check that the bot actually connected and responded to the user. 
+
   Essentially useless command.
+  
   Returns:
-    - string that the user inputted
+    string that the user inputted
   """
   try:
     await safe_send(interaction, f'{string}')
@@ -26,15 +29,20 @@ async def run_repeat(interaction: QuoteBotInteraction, string: str):
 async def run_rand(interaction: QuoteBotInteraction, user: discord.Member, limit: Optional[int], min_count: Optional[int]):
   """
   Sends a random single text user sent in this server.
+
   Quotes the user.
-  Params:
-    - user: the user to quote. The bot will get a random message from this user
-    - limit: the bot will go through the last n messages defined by this variable. ie. limit=200, the bot will check the last 200 messages sent in this channel. Primarily here for timeout purposes. Defaulted to 200
-    - min_count: the minimum number of messages sent by the user where the bot will not output a random message. ie. min_count = 2, if the user has sent < than 2, then the bot will not try to quote. This is mostly to reduce the possibility of the same messages being quoted over and over.
+  Args:
+    user: the user to quote. The bot will get a random message from this user.
+    limit: the bot will go through the last n messages defined by this variable.
+      
+      ie. `limit` = 200, the bot will check the last 200 messages sent in this channel. Primarily here for timeout purposes. Defaulted to 200.
+    min_count: the minimum number of messages sent by the user where the bot will not output a random message.
+    
+      ie. `min_count` = 2, if the user has sent < than 2, then the bot will not try to quote. This is mostly to reduce the possibility of the same messages being quoted over and over.
   
   Returns:
-    - random message chosen
-    - if min_count specified and num messages < min_count, an appropriate message
+    The random message chosen:
+    if `min_count` specified and num messages < `min_count`, an appropriate message.
   """
   try:
     # Don't try to quote itself
@@ -66,9 +74,9 @@ async def run_rand(interaction: QuoteBotInteraction, user: discord.Member, limit
 async def _get_random_message(interaction: QuoteBotInteraction, user: discord.Member, limit: Optional[int], min_count: int):
   """
   Pseudo-random message.
+
   Returns:
-    - None: no messages found
-    - message dict if found
+    None if no messages found, message dict otherwise.
   """
   channel = interaction.channel
   # Get last n messages if user sent it

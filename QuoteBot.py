@@ -18,6 +18,10 @@ configure_logging()
 # Load env data
 load_dotenv()
 def get_env(key: str) -> int:
+  """
+  Returns:
+    integer of an env string
+  """
   val = os.getenv(key)
   if val is None:
     raise ValueError(f"QuoteBot: Environment Initialisation error: {key} not found/set.")
@@ -61,7 +65,10 @@ async def on_ready():
 async def start(interaction: QuoteBotInteraction):
   """
   Start a dnd session.
-  Sets is_active to be True in dnd class
+
+  Initialises dnd_session class.
+
+  Sets `is_active` to be true.
   """
   await dnd.run_start(interaction)
 
@@ -70,7 +77,8 @@ async def start(interaction: QuoteBotInteraction):
 async def end(interaction: QuoteBotInteraction):
   """
   Ends a dnd session.
-  Sets is_active to be False in dnd Class
+
+  Sets `is_active` to be False.
   """
   await dnd.run_end(interaction)
 
@@ -80,10 +88,10 @@ async def end(interaction: QuoteBotInteraction):
 @with_timeout(timeout=3)
 async def new_die(interaction: QuoteBotInteraction, scenario: str, faces: int):
   """
-  Creates a new die instance named scenario with die_num number of faces
-  Params:
-    - scenario: the scenario the die would be used in, is weighted
-    - die_num: the number of faces this die has. num != 4 and num > 5
+  Creates a new die instance named scenario with die_num number of faces.
+  Args:
+    scenario: the scenario the die would be used in, is weighted.
+    die_num: the number of faces this die has. num != 4 and num > 5.
   """
   await dnd.run_new_die(interaction, scenario, faces)
 
@@ -92,23 +100,22 @@ async def new_die(interaction: QuoteBotInteraction, scenario: str, faces: int):
 @with_timeout(timeout=3)
 async def remove_die(interaction: QuoteBotInteraction, scenario: str):
   """
-  Creates a new die instance named scenario with die_num number of faces
-  Params:
-    - scenario: the scenario the die would be used in, is weighted
-    - die_num: the number of faces this die has. num != 4 and num > 5
+  Creates a new die instance named scenario with die_num number of faces.
+  Args:
+    scenario: the scenario the die would be used in, is weighted.
+    die_num: the number of faces this die has. num != 4 and num > 5.
   """
   await dnd.run_remove_die_instance(interaction, scenario)
-
 
 @client.tree.command(name="instance_die", description="Roll an existing scenario die")
 @app_commands.describe(scenario="The die you want to roll")
 @app_commands.describe(addon="Adds or subtracts this result from the die result")
 @with_timeout(timeout=2)
-async def s_dice(interaction: QuoteBotInteraction, scenario: str, addon: Optional[int]):
+async def instance_die(interaction: QuoteBotInteraction, scenario: str, addon: Optional[int]):
   """
-  Takes a scnenario, and rolls the corresponding scenario's die
-  Params:
-    - scenario: the scenario that dictates the die
+  Takes a scnenario, and rolls the corresponding scenario's die.
+  Args:
+    scenario: the scenario that dictates the die.
   """
   await dnd.run_instance_die(interaction, scenario, addon)
 
@@ -116,9 +123,9 @@ async def s_dice(interaction: QuoteBotInteraction, scenario: str, addon: Optiona
 @with_timeout(timeout=2)
 async def list_dice(interaction: QuoteBotInteraction):
   """
-  Lists all the dice created
+  Lists all the dice created in this session.
   Returns:
-    - A list[str] of all dice created.
+    A list of all dice created.
   """
   await dnd.run_list_die(interaction)
 
@@ -129,7 +136,7 @@ async def generate_weather(interaction: QuoteBotInteraction):
   """
   Generates a random weather using weighted chances.
   Returns:
-    - A str of a weather
+    A weather.
   """
   await dnd.run_generate_weather(interaction)
 
@@ -138,9 +145,9 @@ async def generate_weather(interaction: QuoteBotInteraction):
 @with_timeout(timeout=3)
 async def get_weather_list(interaction: QuoteBotInteraction):
   """
-  Gets the 'weather_probabilities' .json file, and outputs the list as an embed.
+  Gets the weather_probabilities.json file, and outputs the list as an embed.
   Returns:
-    - Embed object containing data on weather_probabilities.json
+    Embed object containing data on weather_probabilities.json.
   """
   await dnd.run_weather_list(interaction)
 
@@ -149,7 +156,7 @@ async def get_weather_list(interaction: QuoteBotInteraction):
 @with_timeout(timeout=1)
 async def clear_weather_stats(interaction: QuoteBotInteraction):
   """
-  Clears the 'weather_probabilities' .json file, puts all counts to 0.
+  Clears the weather_probabilities.json file, puts all counts to 0.
   """
   await dnd.run_reset_weather_dict(interaction)
 
@@ -161,8 +168,8 @@ async def add_weather(interaction: QuoteBotInteraction, weather : str):
   """
   Adds the 'weather' to the weather_probabilities.json file.
   Appended as data[weather] = 0.
-  Param:
-    - weather: the weather to add to the .json file
+  Args:
+    weather: the weather to add to the .json file
   """
   await dnd.run_add_new_weather(interaction, weather)
 
@@ -172,9 +179,9 @@ async def add_weather(interaction: QuoteBotInteraction, weather : str):
 @with_timeout(timeout=1)
 async def remove_weather(interaction: QuoteBotInteraction, weather : str):
   """
-  Removes 'weather' from the weather_probabilities.json file.
-  Param:
-    - weather: the weather to remove completely from the .json file
+  Removes specified weather from the weather_probabilities.json file.
+  Args:
+    weather: the weather to remove completely from the .json file
   """
   await dnd.run_remove_weather(interaction, weather)
 
@@ -187,9 +194,9 @@ async def modify_weather(interaction: QuoteBotInteraction, weather: str, new_cou
   """
   Given weather, new_count, makes data[weather] = new_count.
   Modifies the weather to have the new_count as the value.
-  Params:
-    - weather: the weather to modify the count of
-    - new_count: the new integer to set the count to
+  Args:
+    weather: the weather to modify the count of
+    new_count: the new integer to set the count to
   """
   await dnd.run_modify_weather_counts(interaction, weather, new_count)
 
@@ -198,9 +205,9 @@ async def modify_weather(interaction: QuoteBotInteraction, weather: str, new_cou
 @with_timeout(timeout=3)
 async def output_raw_weather_json(interaction: QuoteBotInteraction):
   """
-  Outputs the weather_probabilities json file as a downloadable
+  Outputs the weather_probabilities json file as a downloadable.
   Returns:
-    - A .json object sent as a file
+    A .json object sent as a file
   """
   await dnd.run_output_json_file(interaction)
 
@@ -211,7 +218,7 @@ async def weather_statistics(interaction: QuoteBotInteraction):
   """
   Outputs statistics regarding the weather rolled.
   Returns:
-    - String that details: total rolls, percentages, most/least common
+    String that details: total rolls, percentages, most/least common
   """
   await dnd.run_weather_stats(interaction)
 
@@ -237,9 +244,11 @@ async def leave(interaction: QuoteBotInteraction):
 @with_timeout(timeout=10)
 async def play(interaction: QuoteBotInteraction, link: str):
   """
-  Plays music given by the user. Can accept links or queries.
-  Params:
-    - link: the link/query the user inputs to play
+  Plays music specified by the user.
+  
+  Can accept links or queries.
+  Args:
+    link: the link/query the user inputs to play
   """
   await music.run_play(interaction, link)
 
@@ -259,7 +268,7 @@ async def list_queue(interaction: QuoteBotInteraction):
   """
   Lists the songs in the queue.
   Returns:
-    - A description of the current queue
+    A description of the current queue.
   """
   await music.run_list_queue(interaction)
 
@@ -295,7 +304,7 @@ async def resume(interaction: QuoteBotInteraction):
 @with_timeout(timeout=2)
 async def repeat(interaction: QuoteBotInteraction):
   """
-  Repeats the currently playing song
+  Repeats the currently playing song.
   """
   await music.run_repeat(interaction)
 
@@ -307,21 +316,26 @@ async def repeat(interaction: QuoteBotInteraction):
 async def rand(interaction: QuoteBotInteraction, user : discord.Member, limit : Optional[int], min_count : Optional[int]):
   """
   Sends a random single text user sent in this server. quotes the user.
-  Params:
-    - user: the user to find a quote of.
-    - limit: the number of previous messages to search through. May cause timeouts if too large.
-    - min_count: the min number of messages this user must have sent for this command to return a message. Defaulted
+  Args:
+    user: the user to find a quote of.
+    limit: the number of previous messages to search through. May cause timeouts if too large.
+    min_count: the min number of messages this user must have sent for this command to return a message. Defaulted
+  
+    Returns:
+      A random message sent by a user in the last specified number of messages.
   """
   await quotes.run_rand(interaction, user, limit=limit, min_count=min_count)
 
 @client.tree.command(name="repeat_after_me", description="Repeats what you say (no rude words you goober)")
 @app_commands.describe(string="The string you want me to repeat")
 @with_timeout(timeout=1)
-async def repeatafterme(interaction: QuoteBotInteraction, string: str):
+async def repeat_after_me(interaction: QuoteBotInteraction, string: str):
     """
     Repeats whatever the user says.
-    Params:
-      - string: user input to repeat
+    Args:
+      string: user input to repeat
+    Returns:
+      string: whatever the user said
     """
     await quotes.run_repeat(interaction, string)
 
@@ -331,11 +345,12 @@ async def repeatafterme(interaction: QuoteBotInteraction, string: str):
 async def dice(interaction: QuoteBotInteraction, faces: int, addon: Optional[int]):
   """
   Rolls a dice with die_num number of faces.
-  Params:
-    - die_num: number of faces on this dice to roll
+  Args:
+    die_num: number of faces on this dice to roll
+  Returns:
+    The roll on the dice.
   """
   await utils.run_d(interaction, faces, addon)
-
 
 # TODO: convert this to embedded links
 @client.tree.command(name="timezone", description="Convert a time in a given timezone to another")
@@ -357,14 +372,16 @@ async def timezone(
 ):
   """
   Converts a given timezone to a target timezone.
-  Params:
-    - time: the current time you want converted, HH/MM
-    - origin_country: the country of the timezone you want converted
-    - origin_city: the city of the timezone you want converted
-    - target_country: the country of the timezone it converts into
-    - target_city: the city of the timezone it converts into
-    - date_str: optional. if none given, uses current system time. else
+  Args:
+    time: the current time you want converted, HH/MM
+    origin_country: the country of the timezone you want converted
+    origin_city: the city of the timezone you want converted
+    target_country: the country of the timezone it converts into
+    target_city: the city of the timezone it converts into
+    date_str: optional. if none given, uses current system time. else
                 given using DD/MM/YYYY format
+  Returns:
+    The converted time in a string format.
   """
   await utils.run_timezone_converter(
     interaction,

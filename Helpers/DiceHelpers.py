@@ -5,10 +5,15 @@ from exceptions.dice import invalid_faces_error
 def compute_roll(die_num: int, addon: int | None=0) -> str:
   """
   Rolls a die.
-  Given die_num faces, where (die_num == 4) || (die_num >= 6), roll a die where addon is added to the result.
-  Params:
-    - die_num: the faces of the die. Must be either exactly 4, or any number >= 6
-    - addon: optional. The number added onto the result. Defaulted to 0
+  
+  Given die_num faces, where `(die_num == 4) || (die_num >= 6)`, roll a die where addon is added to the result.
+  Args:
+    die_num: the faces of the die. Must be either exactly 4, or any number >= 6.
+    addon: optional. The number added onto the result. Defaulted to 0.
+  Returns:
+    Whatever was rolled.
+  Raises:
+    InvalidFacesError: invalid number of faces specified.
   """
   if not check_die_faces(die_num):
     raise invalid_faces_error.InvalidFacesError
@@ -27,6 +32,7 @@ def compute_roll(die_num: int, addon: int | None=0) -> str:
 def check_die_faces(f: int) -> bool:
   """
   Check if the die faces is valid.
+  
   Valid die faces are either exactly 4, or any number >= 6.
   """
   if (f < 6 and f != 4):

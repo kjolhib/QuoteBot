@@ -13,6 +13,13 @@ class Dice:
     self.past_rolls: list[int] = []
 
   def simulate_weighted_rolls(self):
+    """
+    Simulates weighted rolls on past rolls list.
+
+    Returns:
+      Int:
+        The weighted result.
+    """
     # All possible faces
     possible = list(range(1, self.faces + 1))
 

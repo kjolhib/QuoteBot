@@ -12,11 +12,16 @@ from exceptions.music import clear_queue_error, join_vc_error
 from .UtilityHelpers import safe_send
 from classes.guild_state import GuildState
 
-async def play_next_song(state: GuildState, interaction: QuoteBotInteraction):
+async def play_next_song(interaction: QuoteBotInteraction, state: GuildState):
   """
   Plays the next song in queue.
+ 
   Repeat is handled automatically.
+  
   Disconnects if queue is empty and repeat is off.
+
+  Args:
+    state: the GuildState class
   """
   if not state.voice_client:
     return
@@ -35,7 +40,7 @@ async def play_next_song(state: GuildState, interaction: QuoteBotInteraction):
     # schedule next song
     if state.voice_client:
       asyncio.run_coroutine_threadsafe(
-        play_next_song(state, interaction), state.voice_client.loop
+        play_next_song(interaction, state), state.voice_client.loop
       )
   
   if state.repeat and state.current:
@@ -64,9 +69,9 @@ async def play_next_song(state: GuildState, interaction: QuoteBotInteraction):
 async def ensure_vc(interaction: QuoteBotInteraction, user: discord.Member, play_cmd: bool=False) -> discord.VoiceClient | int:
   """
   Ensures user is in VC, bot joins the vc if they are.
-  Params:
-    - user: user that requested the bot to join vc
-    - play_cmd: If called by play_cmd, then we play a song, if not, just join
+  Args:
+    user: user that requested the bot to join vc
+    play_cmd: If called by `play_cmd`, then we play a song, if not, just join
   """
   user_name = user.mention
   # user must be in vc
@@ -87,7 +92,9 @@ async def ensure_vc(interaction: QuoteBotInteraction, user: discord.Member, play
   
 async def clear_queue(state: GuildState):
   """
-  Clears the queue
+  Clears the queue.
+
+  Sets current to `None` and `repeat` to False.
   """
   try:
     # Clear queue
@@ -105,8 +112,8 @@ async def search_first_track(query: str, ydl_options: dict[str, Any]) -> tuple[s
   """
   Searches the query and returns the first track's audio url and title.
   Returns:
-    - (audio_url, title) if found
-    - None if not found or error
+    (audio_url, title) if found
+    None if not found or error
   """
   serach_query = "ytsearch1: " + query
   results = await _search_ytdlp_async(serach_query, ydl_options)
@@ -120,12 +127,14 @@ async def search_first_track(query: str, ydl_options: dict[str, Any]) -> tuple[s
 async def _bot_join_vc(interaction: QuoteBotInteraction, user_channel: discord.VoiceChannel, user_name: str, play_cmd: bool):
   """
   Checks if the bot is already in vc.
+  
   If not, joins.
+  
   If is, moves if in different vc.
-  Params:
-    - user_channel: the channel the user is in
-    - user_name: user's name
-    - play_cmd: whether or not this was called by the /play command.
+  Args:
+    user_channel: the channel the user is in
+    user_name: user's name
+    play_cmd: whether or not this was called by the `/play` command.
   """
   # Check if bot is already in a VC in this guild
   bot_vc = interaction.guild.voice_client # type: ignore
@@ -146,7 +155,7 @@ async def _bot_join_vc(interaction: QuoteBotInteraction, user_channel: discord.V
 
 def _extract(query: str, ydl_opts: dict[str, Any]):
   """
-  Extracts the youtube query information
+  Extracts the youtube query information.
   """
   with yt_dlp.YoutubeDL(ydl_opts) as ydl: # type: ignore
     return ydl.extract_info(query, download=False)
@@ -154,6 +163,7 @@ def _extract(query: str, ydl_opts: dict[str, Any]):
 async def _search_ytdlp_async(query: str, ydl_opts: dict[str, Any]):
   """
   Asynchronously runs the searcher for seamlessness.
+  
   Searches for the query.
   """
   loop = asyncio.get_running_loop()
