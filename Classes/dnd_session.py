@@ -14,10 +14,10 @@ class DnDSession:
     `start_time`: the time the session started.
     `current_session_dice`: a list of all dice in the current session.
   """
-  def __init__(self, is_active: bool = False, start_time: float = 0, csd: list[Dice] = []):
+  def __init__(self, is_active: bool = False, start_time: float = 0, csd: list[Dice] | None = None):
     self.is_active: bool = is_active
     self.start_time : float = start_time
-    self.current_session_dice : list[Dice] = csd
+    self.current_session_dice : list[Dice] = csd if csd else []
 
   def create_new_die(self, faces: int, scenario: str) -> None:
     """

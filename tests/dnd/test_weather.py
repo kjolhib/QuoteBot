@@ -37,7 +37,7 @@ increment_val
 """
 def test_inc__valid(weather: wd.WeatherData):
   weather.increment_val("a")
-  assert weather.get_data()["a"] == 1
+  assert weather.data["a"] == 1
 
 def test_inc__missing_invalid(weather: wd.WeatherData):
   with pytest.raises(weather_missing_error.WeatherMissingError):
@@ -53,7 +53,7 @@ select_weighted_random
 def test_random__valid(weather: wd.WeatherData):
   chosen = weather.select_weighted_random()
   weather.increment_val(chosen)
-  assert 1 in weather.get_data().values()
+  assert 1 in weather.data.values()
 
 def test_random__empty_invalid(empty_weather: wd.WeatherData):
   with pytest.raises(weather_empty_error.WeatherEmptyError):
@@ -64,19 +64,19 @@ load_weather
 """
 def test_load_weather__valid():
   data = wd.load_weather(fp=TMP_PATH) # should assign the init data to this new temp file
-  assert data.get_data() == wd.get_init_data().get_data()
+  assert data.data == wd.get_init_data().data
     
 def test_load_weather__valid_already_exists(weather: wd.WeatherData):
   tmp_ = os.path.join(os.path.dirname(__file__), "tmp_weather_probabilities2.json")
   new_data = wd.load_weather(fp=tmp_)
   chosen = new_data.select_weighted_random() # select something just so it will be different from init data
   new_data.increment_val(chosen)
-  assert 1 in new_data.get_data().values()
+  assert 1 in new_data.data.values()
   wd.save_weather(new_data, fp=tmp_)
   
   updated_data = wd.load_weather(fp=tmp_)
-  assert 1 in updated_data.get_data().values()
-  assert weather.get_data() != updated_data.get_data()
+  assert 1 in updated_data.data.values()
+  assert weather.data != updated_data.data
 
   os.remove(tmp_)
 
@@ -84,13 +84,13 @@ def test_load_weather__valid_already_exists(weather: wd.WeatherData):
 save_weather
 """
 def test_save_weather__valid(weather: wd.WeatherData):
-  old = wd.load_weather(TMP_PATH).get_data()
+  old = wd.load_weather(TMP_PATH).data
   chosen = weather.select_weighted_random()
   weather.increment_val(chosen)
-  assert chosen in weather.get_data().keys() # we chose some random key
-  assert weather.get_data()[chosen] == 1 # some chosen key has value 1
+  assert chosen in weather.data.keys() # we chose some random key
+  assert weather.data[chosen] == 1 # some chosen key has value 1
   wd.save_weather(weather, fp=TMP_PATH) # save the newly updated json
-  new = wd.load_weather(TMP_PATH).get_data()
+  new = wd.load_weather(TMP_PATH).data
   assert 1 in new.values()
   assert old != new
 
@@ -108,7 +108,7 @@ def test_reset_weather__valid(weather: wd.WeatherData):
   wd.reset_json(fp=TMP_PATH)
   new = wd.load_weather(fp=TMP_PATH)
 
-  assert old.get_data() != new.get_data()
+  assert old.data != new.data
 
 """
 reset_data
@@ -117,12 +117,12 @@ def test_reset_data__valid(weather: wd.WeatherData):
   # get old data before resetting data
   chosen = weather.select_weighted_random()
   weather.increment_val(chosen)
-  old_data = weather.get_data()
+  old_data = weather.data
 
   weather.reset_data()
 
   # get new data after resetting data
-  new_data = weather.get_data()
+  new_data = weather.data
   assert old_data != new_data
   assert 1 in old_data.values()
   assert 1 not in new_data.values()
@@ -133,8 +133,8 @@ add_new_weather
 """
 def test_add_weather__valid(empty_weather: wd.WeatherData):
   empty_weather.add_new_weather("a")
-  assert empty_weather.get_data()
-  assert empty_weather.get_data()["a"] == 0
+  assert empty_weather.data
+  assert empty_weather.data["a"] == 0
 
 @pytest.mark.parametrize("s", ["a", "b", "c"])
 def test_add_weather__exists_invalid(weather: wd.WeatherData, s: str):
@@ -147,8 +147,8 @@ remove_weather
 """
 def test_remove_weather__valid(weather: wd.WeatherData):
   weather.remove_weather("a")
-  assert len(weather.get_data().keys()) == 2 # ["b": 0, "c": 0]
-  assert "a" not in weather.get_data().keys()
+  assert len(weather.data.keys()) == 2 # ["b": 0, "c": 0]
+  assert "a" not in weather.data.keys()
 
 def test_remove_weather__missing_invalid(weather: wd.WeatherData):
   with pytest.raises(weather_missing_error.WeatherMissingError):
@@ -159,7 +159,7 @@ modify_data
 """
 def test_modify_data__valid(weather: wd.WeatherData):
   weather.modify_weather("a", 100)
-  assert weather.get_data()["a"] == 100
+  assert weather.data["a"] == 100
 
 def test_modify_data__negative_invalid(weather: wd.WeatherData):
   with pytest.raises(negative_count_error.NegativeCountError):
@@ -176,16 +176,14 @@ def test_statistics__valid(weather: wd.WeatherData):
   chosen = weather.select_weighted_random()
   weather.increment_val(chosen)
   s = weather.statistics()
-  assert s["total_rolls"] != 0
-  assert s["most_common"] != "N/A"
-  assert s["least_common"] != "N/A"
+  assert s.total_rolls != 0
+  assert s.most_common != "N/A"
+  assert s.least_common != "N/A"
 
 def test_statistics__empty_valid(empty_weather: wd.WeatherData):
   s = empty_weather.statistics()
-  assert s == {
-    "total_rolls": 0,
-    "percentages": {},
-    "most_common": "N/A",
-    "least_common": "N/A"
-  }
+  assert s.total_rolls == 0
+  assert not s.percentages
+  assert s.most_common == "N/A"
+  assert s.least_common == "N/A"
 

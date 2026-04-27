@@ -59,7 +59,7 @@ def with_timeout(timeout: float = 7.0):
   """
   def decorator(func: Callable[P, Awaitable[None]]):
     @wraps(func)
-    async def wrapper(interaction: discord.Interaction, *args: P.args, **kwargs: P.kwargs) -> None:
+    async def wrapper(interaction: QuoteBotInteraction, *args: P.args, **kwargs: P.kwargs) -> None:
       start = time.perf_counter()
       try: 
         # defer response if needed
