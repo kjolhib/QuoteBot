@@ -1,4 +1,3 @@
-import datetime
 import discord
 from typing import Optional
 
@@ -11,7 +10,8 @@ from helpers.DnDHelpers import *
 from exceptions.error_handler import report_error
 from exceptions.dice import too_many_dice_error
 from exceptions.dnd import weather_exists_error, weather_missing_error, weather_empty_error, negative_count_error
-from classes import dnd_session as dsesh, weather_data as wd
+from exceptions.guild import null_session_error
+from classes import weather_data as wd
 
 async def run_start(interaction: QuoteBotInteraction):
   """
@@ -26,7 +26,7 @@ async def run_start(interaction: QuoteBotInteraction):
     return
   
   # Create new class
-  state.dnd_session = dsesh.DnDSession(True, interaction.created_at.timestamp())
+  state.start(interaction.created_at.timestamp())
   human_readable_time = format_AEST(interaction.created_at, "%H:%M:%S")
   await safe_send(interaction, f"New session started at {human_readable_time}.")
 
@@ -38,16 +38,17 @@ async def run_end(interaction: QuoteBotInteraction):
   Clears the guild's dnd_session.
   """
   state = interaction.client.get_guild_state(str(interaction.guild_id))
-  assert state.dnd_session # should always be not none if going into the function. decorator should have handled None cases
+  # Decorator makes sure a session is valid no matter what. If that somehow failed, this should catch it.
+  assert state.dnd_session
 
-  # How long the session lasted
-  end_time = interaction.created_at.timestamp()
-  duration = end_time - state.dnd_session.start_time
-  human_readable_time = str(datetime.timedelta(seconds=duration))
-  
-  # Clear session
-  state.dnd_session = None
-  await safe_send(interaction, f"Session ended after {human_readable_time} seconds.")
+  try:
+    human_readable_time = state.end()
+    await safe_send(interaction, f"Session ended after {human_readable_time} seconds.")
+  except null_session_error.NullSessionError:
+    await safe_send(interaction, f"Session ended, but ungracefully. Session was somehow ended before it even started. Check logs for more details.")
+  except Exception as e:
+    await safe_send(interaction, "Unknown error occurred. Check logs for more details.")
+    report_error("run_end", e, "attempted to end session")
 
 @require_valid_session
 async def run_new_die(interaction: QuoteBotInteraction, scenario: str, die_num: int):

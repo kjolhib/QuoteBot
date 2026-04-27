@@ -176,7 +176,8 @@ def test_statistics__valid(weather: wd.WeatherData):
   chosen = weather.select_weighted_random()
   weather.increment_val(chosen)
   s = weather.statistics()
-  assert s.total_rolls != 0
+  assert s.total_rolls == 1
+  assert s.percentages
   assert s.most_common != "N/A"
   assert s.least_common != "N/A"
 
@@ -186,4 +187,3 @@ def test_statistics__empty_valid(empty_weather: wd.WeatherData):
   assert not s.percentages
   assert s.most_common == "N/A"
   assert s.least_common == "N/A"
-

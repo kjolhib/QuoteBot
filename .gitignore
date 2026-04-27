@@ -17,6 +17,7 @@ tmp/
 .vscode/
 .pytest_cache
 __pycache__
+.coverage
 
 # weather probabilities
 /data/weather_probabilities.json
