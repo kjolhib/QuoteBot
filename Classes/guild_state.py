@@ -37,7 +37,12 @@ class GuildState:
     """
     self.dnd_session = DnDSession(True, time, dice)
 
-  def end(self) :
+  def end(self):
+    """
+    Ends a dnd session.
+
+    Should only be called if a DnDSession is already active.
+    """
     # How long the session lasted
     if not self.dnd_session:
       raise null_session_error.NullSessionError(f"Attempted to end a session that was None. This should never happen as it should have been handled in dnd.py prior to calling this function.")

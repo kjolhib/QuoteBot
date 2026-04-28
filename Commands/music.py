@@ -3,10 +3,9 @@ from typing import Any
 
 from interaction_type import QuoteBotInteraction
 
-from exceptions.music import clear_queue_error, join_vc_error, user_in_stage_vc_error
+from exceptions.voice import clear_queue_error, join_vc_error, user_in_stage_vc_error, user_not_in_vc_error, no_voice_error
 from helpers.MusicHelpers import search_first_track, play_next_song, clear_queue, ensure_vc
 from helpers.UtilityHelpers import bot_require_voice_client, safe_send
-from exceptions.music import (user_not_in_vc_error)
 from exceptions.error_handler import report_error
 
 async def run_join(interaction: QuoteBotInteraction):
@@ -103,9 +102,12 @@ async def run_play(interaction: QuoteBotInteraction, query: str):
   else:
     # otherwise, play the song now.
     try:
-      await play_next_song(state, interaction)
+      await play_next_song(interaction, state)
+    except no_voice_error.NoVoiceClientError as nvce:
+      await safe_send(interaction, f"Error playing song. Somehow the voice client does not exist? Check logs for more details.")
+      report_error("run_play", nvce, f"voice error was found to be null or none")
     except Exception as e:
-      await safe_send(interaction, f"Error playing song. Check logs for more details.")
+      await safe_send(interaction, f"Unknown error playing song. Check logs for more details.")
       report_error("run_play", e, f"error playing song")
   
 @bot_require_voice_client

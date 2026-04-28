@@ -5,10 +5,8 @@ from typing import Any
 
 from interaction_type import QuoteBotInteraction
 
-from exceptions.music import user_in_stage_vc_error
-from exceptions.music import user_not_in_vc_error
+from exceptions.voice import clear_queue_error, join_vc_error, user_in_stage_vc_error, user_not_in_vc_error, no_voice_error
 from exceptions.error_handler import report_error
-from exceptions.music import clear_queue_error, join_vc_error
 from .UtilityHelpers import safe_send
 from classes.guild_state import GuildState
 
@@ -24,7 +22,7 @@ async def play_next_song(interaction: QuoteBotInteraction, state: GuildState):
     state: the GuildState class
   """
   if not state.voice_client:
-    return
+    raise no_voice_error.NoVoiceClientError(f"Voice client is null when trying to play next song.")
 
   ffmpeg_options = {
     "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
@@ -48,6 +46,7 @@ async def play_next_song(interaction: QuoteBotInteraction, state: GuildState):
     audio_url, title = state.current
     now_msg = f"Now repeating: **{title}**"
   elif state.queue:
+    # no loop, pop next in queue and play
     audio_url, title = state.queue.popleft()
     state.current = (audio_url, title)
     now_msg = f"Now playing: **{title}**"
