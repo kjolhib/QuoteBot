@@ -135,8 +135,8 @@ async def run_list_die(interaction: QuoteBotInteraction):
   assert state.dnd_session
 
   session = state.dnd_session
-  print_msg = session.list_dice() # raises error if no dice in session
-  await safe_send(interaction, print_msg)
+  embed = session.list_dice() # raises error if no dice in session
+  await safe_send_embed(interaction, embed)
 
 @require_valid_session
 async def run_generate_weather(interaction: QuoteBotInteraction):
@@ -149,9 +149,6 @@ async def run_generate_weather(interaction: QuoteBotInteraction):
     A pseudo-randomly generated weather.
 
     Weighted by the more often it is chosen before, it less likely it'd be chosen again.
-
-  Raises:
-    WeatherEmptyError: there are no weathers to in the json.
   """
   data: wd.WeatherData= wd.load_weather()
 

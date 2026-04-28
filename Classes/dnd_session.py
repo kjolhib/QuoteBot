@@ -1,3 +1,5 @@
+from discord.embeds import Embed as de
+from discord.colour import Colour as dc
 from classes.dice import Dice
 from helpers.DiceHelpers import check_die_faces
 from exceptions.dice import no_die_in_sesh_error, too_many_dice_error
@@ -51,7 +53,7 @@ class DnDSession:
     
     self.current_session_dice = [d for d in self.current_session_dice if d.scenario != scenario]
 
-  def list_dice(self) -> str:
+  def list_dice(self) -> de:
     """
     Lists the dice in the current session.
     Returns:
@@ -66,12 +68,8 @@ class DnDSession:
     """
     if not self.current_session_dice:
       raise no_die_in_sesh_error.NoDieInSeshError("No dice in session.")
-    
-    print_msg = "**__Dice Created__:**\n"
-    for die in self.current_session_dice:
-      print_msg += f"**{die.scenario}**: D**{die.faces}**\n"
 
-    return print_msg
+    return self._to_embed()
 
   def _verify_die_creation(self, scenario: str, faces: int) -> None:
     """
@@ -81,14 +79,28 @@ class DnDSession:
 
     Raises:
       InvalidFacesError: non-valid faces specified.
-      TooManyDiceError: more than 100 dice created in this session.
+      TooManyDiceError: more than 25 dice created in this session.
       DieAlrExistsError: a die with the specified scenario already exists.
     """
     if not check_die_faces(faces):
       raise invalid_faces_error.InvalidFacesError(f"I do not know what a D{faces} is. Choose a die that has either exactly 4 or >= 6 faces ya bingus.")
     
-    if len(self.current_session_dice) >= 100:
-      raise too_many_dice_error.TooManyDiceError(f"You cannot create more than 100 dice per session. Contact @chewswisely with a very good reason if you believe you somehow need more.")
+    if len(self.current_session_dice) >= 25:
+      raise too_many_dice_error.TooManyDiceError(f"You cannot create more than 25 dice per session. Contact @chewswisely with a very good reason if you believe you somehow need more.")
 
     if isinstance(self.get_die(scenario), Dice):
       raise die_alr_exists_error.DieAlrExistsError(f"You lack originality. Die with this scenario name: **{scenario}**, already exists. Please think of an **original** scenario name.")
+
+  def _to_embed(self) -> de:
+    """
+    Turns `current_session_dice` into an embed object for discord to send.
+    """
+    embed = de(title="**__Dice Created__:**", colour=dc.blue())
+    for die in self.current_session_dice:
+      embed.add_field(
+        name=f"__{die.scenario}__",
+        value=f"D(**{die.faces}**)",
+        inline=False
+      )
+    
+    return embed
