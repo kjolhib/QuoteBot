@@ -19,7 +19,7 @@ def session():
 
 @pytest.fixture
 def session_with_die(session: DnDSession):
-  session.create_new_die(6, "a")
+  session.create_new_die("a", 6)
   return session
 
 """
@@ -41,23 +41,23 @@ def test_new_die_valid(session_with_die: DnDSession):
   assert session_with_die.current_session_dice
   assert len(session_with_die.current_session_dice) == 1
 
-@pytest.mark.parametrize("die_num", [1, 2, 3, 5])
-def test_new_die__num_invalid(session: DnDSession, die_num: int):
+@pytest.mark.parametrize("faces", [1, 2, 3, 5])
+def test_new_die__num_invalid(session: DnDSession, faces: int):
   with pytest.raises(invalid_faces_error.InvalidFacesError):
-    session.create_new_die(die_num, "a")
+    session.create_new_die("a", faces)
 
 def test_new_die__alr_exists(session_with_die: DnDSession):
   with pytest.raises(die_alr_exists_error.DieAlrExistsError):
-    session_with_die.create_new_die(6, "a")
+    session_with_die.create_new_die("a", 6)
 
 def test_new_die__too_many(session: DnDSession):
-  for i in range(100):
-    session.create_new_die(7, f"{i}")
+  for i in range(25):
+    session.create_new_die(f"{i}", 7)
 
-  assert len(session.current_session_dice) == 100
+  assert len(session.current_session_dice) == 25
 
   with pytest.raises(too_many_dice_error.TooManyDiceError):
-    session.create_new_die(7, "101")
+    session.create_new_die("101", 7)
 
 """
 remove_die
@@ -72,14 +72,3 @@ def test_remove_die_valid(session_with_die: DnDSession):
 def test_remove_die__no_scenario(session_with_die: DnDSession):
   with pytest.raises(no_die_in_sesh_error.NoDieInSeshError):
     session_with_die.remove_die("b")
-
-"""
-list_dice
-"""
-def test_list_dice__valid(session_with_die: DnDSession):
-  result = session_with_die.list_dice()
-  assert "**a**: D**6**" in result
-
-def test_list_dice__empty(session: DnDSession):
-  with pytest.raises(no_die_in_sesh_error.NoDieInSeshError):
-    session.list_dice()

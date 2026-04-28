@@ -6,8 +6,6 @@ from interaction_type import QuoteBotInteraction
 from helpers.TimezoneHelpers import format_AEST
 from helpers.UtilityHelpers import safe_send
 from helpers.QuoteHelpers import *
-from exceptions.utils import lt_min_count_error
-from exceptions.error_handler import report_error
 
 async def run_repeat(interaction: QuoteBotInteraction, string: str):
   """
@@ -20,13 +18,9 @@ async def run_repeat(interaction: QuoteBotInteraction, string: str):
   Returns:
     string that the user inputted
   """
-  try:
-    await safe_send(interaction, f'{string}')
-  except Exception as e:
-    await safe_send(interaction, f"Error sending message. Check logs for more details.")
-    report_error(f"repeat_after_me", e, f"{string}")
+  await safe_send(interaction, f'{string}')
 
-async def run_rand(interaction: QuoteBotInteraction, user: discord.Member, limit: Optional[int], min_count: Optional[int]):
+async def run_rand_message(interaction: QuoteBotInteraction, user: discord.Member, limit: Optional[int], min_count: Optional[int]):
   """
   Sends a random single text user sent in this server.
 
@@ -44,32 +38,26 @@ async def run_rand(interaction: QuoteBotInteraction, user: discord.Member, limit
     The random message chosen:
     if `min_count` specified and num messages < `min_count`, an appropriate message.
   """
-  try:
-    # Don't try to quote itself
-    if not interaction.client.user:
-      print(f"Quotes/rand: interaction.client.user is None: interaction: {interaction}")
-      return await safe_send(interaction, "An error occurred. Check logs for more info.")
-    if user.id == interaction.client.user.id:
-      return await safe_send(interaction, "Stop trying to quote me, I'm above your whimsical interactions!")
+  # Don't try to quote itself
+  if not interaction.client.user:
+    print(f"Quotes/rand: interaction.client.user is None: interaction: {interaction}")
+    return await safe_send(interaction, "An error occurred. Check logs for more info.")
+  if user.id == interaction.client.user.id:
+    return await safe_send(interaction, "Stop trying to quote me, I'm above your whimsical interactions!")
 
-    if not limit:
-      limit = 200
-    if not min_count:
-      min_count = 0
+  if not limit:
+    limit = 200
+  if not min_count:
+    min_count = 0
 
-    msg = await _get_random_message(interaction, user, limit, min_count)
-    
-    if not msg:
-      print(f"No messages sent: {limit}")
-      return await safe_send(interaction, f"This user has not sent any messages in the last {limit} messages, disappointing...")
+  msg = await _get_random_message(interaction, user, limit, min_count)
+  
+  if not msg:
+    print(f"No messages sent: {limit}")
+    return await safe_send(interaction, f"This user has not sent any messages in the last {limit} messages, disappointing...")
 
-    timestamp = format_AEST(msg.created_at, "%Y-%m-%d %H:%M:%S")
-    return await safe_send(interaction, '"' + msg.content + '"' + " - " + user.name + " (" + timestamp + ")")
-  except lt_min_count_error:
-    await safe_send(interaction, f"{user.name} has sent less than {min_count} messages recently!")
-  except Exception as e:
-    await safe_send(interaction, f"An error occurred. Try again later or check logs.")
-    report_error(f"[random_msg]", e, f"info: {user}, limit: {limit}, min_count: {min_count}")
+  timestamp = format_AEST(msg.created_at, "%Y-%m-%d %H:%M:%S")
+  return await safe_send(interaction, '"' + msg.content + '"' + " - " + user.name + " (" + timestamp + ")")
 
 async def _get_random_message(interaction: QuoteBotInteraction, user: discord.Member, limit: Optional[int], min_count: int):
   """

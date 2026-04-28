@@ -5,8 +5,8 @@ from typing import Any
 
 from interaction_type import QuoteBotInteraction
 
-from exceptions.voice import clear_queue_error, join_vc_error, user_in_stage_vc_error, user_not_in_vc_error, no_voice_error
-from exceptions.error_handler import report_error
+from exceptions.voice import clear_queue_error, user_in_stage_vc_error, user_not_in_vc_error, no_voice_error
+from exceptions.voice import after_play_error
 from .UtilityHelpers import safe_send
 from classes.guild_state import GuildState
 
@@ -22,7 +22,7 @@ async def play_next_song(interaction: QuoteBotInteraction, state: GuildState):
     state: the GuildState class
   """
   if not state.voice_client:
-    raise no_voice_error.NoVoiceClientError(f"Voice client is null when trying to play next song.")
+    raise no_voice_error.NoVoiceClientError("Voice client not found while attempting to play the next song, @chewswisely messed something up. Check logs for more details.", "play_next_song", "when attempting to play the next song, guild's voice_client attribute suddenly became None. This can only happen if the bot disconnected.")
 
   ffmpeg_options = {
     "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
@@ -34,7 +34,7 @@ async def play_next_song(interaction: QuoteBotInteraction, state: GuildState):
     """
     if error:
       # If any error occurs here, report it, but continue playing the queue
-      report_error(f"after_play", error, f"Error in after_play: {error}")
+      raise after_play_error.AfterPlayError("An error occurred after song stopped. @chewswisely messed something up.", "after_play", "")
     # schedule next song
     if state.voice_client:
       asyncio.run_coroutine_threadsafe(
@@ -76,18 +76,15 @@ async def ensure_vc(interaction: QuoteBotInteraction, user: discord.Member, play
   # user must be in vc
   if not user.voice or not user.voice.channel:
     print("[PLAY]: ensure_vc: user is not in a vc.")
-    raise user_not_in_vc_error.UserNotInVcError("User is not in a vc.")
+    raise user_not_in_vc_error.UserNotInVcError()
 
   # Check connections
   user_channel = user.voice.channel
   if isinstance(user_channel, discord.StageChannel):
     print("[PLAY]: ensure_vc: user is in a stage channel vc.")
-    raise user_in_stage_vc_error.UserInStageVcError("User is in a stage vc.")
+    raise user_in_stage_vc_error.UserInStageVcError()
 
-  try:
-    return await _bot_join_vc(interaction, user_channel, user_name, play_cmd) # type: ignore
-  except join_vc_error.JoinVcError as jve:
-    raise join_vc_error.JoinVcError(f"Error clearing queue: {jve}")
+  return await _bot_join_vc(interaction, user_channel, user_name, play_cmd) # type: ignore
   
 async def clear_queue(state: GuildState):
   """
@@ -104,8 +101,8 @@ async def clear_queue(state: GuildState):
 
       if state.voice_client and (state.voice_client.is_playing() or state.voice_client.is_paused()):
         state.voice_client.stop()
-  except Exception as e:
-    raise clear_queue_error.ClearQueueError(f"Error clearing queue: {e}")
+  except Exception:
+    raise clear_queue_error.ClearQueueError(f"There was an error clearing the queue. Check logs for more details", "clear_queue", "somehow .clear() or .stop() failed")
   
 async def search_first_track(query: str, ydl_options: dict[str, Any]) -> tuple[str, str] | None:
   """

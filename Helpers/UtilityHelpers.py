@@ -2,12 +2,13 @@ import asyncio
 import discord
 import time
 from functools import wraps
-
-from interaction_type import QuoteBotInteraction
-
 from typing import Callable, Awaitable, TypeVar
 from typing_extensions import ParamSpec
-from exceptions.error_handler import report_error
+
+from interaction_type import QuoteBotInteraction
+from exceptions.quote_bot_errors import QuoteBotError
+from exceptions.voice import UserNotInVcError
+from exceptions.utils import TimeoutError
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -68,12 +69,10 @@ def with_timeout(timeout: float = 7.0):
         
         # run original commadn with timeout
         await asyncio.wait_for(func(interaction, *args, **kwargs), timeout=timeout) # type: ignore
-      except asyncio.TimeoutError:
-        await timeout_err(interaction)
-      except Exception as e:
-        # catch everything else
-        await safe_send(interaction, f"Uh oh, an unknown error occurred. Something (my code) went wrong. Check them logs and contact @chewswisely.")
-        report_error(func.__name__, exc=e, extra_info="An unknown error occurred.")
+      except TimeoutError:
+        raise TimeoutError(f"Command {func.__name__} timed out.", func.__name__, "")
+      except QuoteBotError:
+        raise
       finally:
         end = time.perf_counter()
         print(f"[{(func.__name__).upper()}] executed in {end-start:.3f}s")
@@ -93,7 +92,6 @@ def bot_require_voice_client(func: Callable[P, Awaitable[R]]) -> Callable[P, Awa
     interaction: QuoteBotInteraction = args[0] # type: ignore
     state = interaction.client.get_guild_state(str(interaction.guild_id))
     if not state.voice_client:
-      await safe_send(interaction, "Not in a voice channel. ")
-      return #type: ignore
+      raise UserNotInVcError(f"You must be in a voice client to use this command.")
     return await func(*args, **kwargs) # type: ignore
   return wrapper

@@ -31,7 +31,7 @@ def choose_random_message(messages: List[discord.Message], min_count: int):
       if len(messages) < min_count:
         # Too little messages sent
         print(f"[choose_random_message]: Too few messages sent by user, contents are as follows: \n{msg.content}")
-        raise LTMinCountError("Too few messages sent by user.")
+        raise LTMinCountError(f"User has sent less than {len(messages)} recently!")
       return msg
 
 async def get_last_n_messages(channel: discord.abc.Messageable, limit: Optional[int], user: discord.Member):

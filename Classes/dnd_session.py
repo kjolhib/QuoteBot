@@ -19,7 +19,7 @@ class DnDSession:
     self.start_time : float = start_time
     self.current_session_dice : list[Dice] = csd if csd else []
 
-  def create_new_die(self, faces: int, scenario: str) -> None:
+  def create_new_die(self, scenario: str, faces: int) -> None:
     """
     Creates a new die of a given scenario, with given faces.
     Args:
@@ -47,7 +47,7 @@ class DnDSession:
     """
     die = self.get_die(scenario)
     if not die:
-      raise no_die_in_sesh_error.NoDieInSeshError
+      raise no_die_in_sesh_error.NoDieInSeshError(f"There is no die named {scenario} in current session ya bingus.")
     
     self.current_session_dice = [d for d in self.current_session_dice if d.scenario != scenario]
 
@@ -85,10 +85,10 @@ class DnDSession:
       DieAlrExistsError: a die with the specified scenario already exists.
     """
     if not check_die_faces(faces):
-      raise invalid_faces_error.InvalidFacesError
+      raise invalid_faces_error.InvalidFacesError(f"I do not know what a D{faces} is. Choose a die that has either exactly 4 or >= 6 faces ya bingus.")
     
     if len(self.current_session_dice) >= 100:
-      raise too_many_dice_error.TooManyDiceError(f"Too many die! There's over 100 dies here! How did you even create this many?!")
+      raise too_many_dice_error.TooManyDiceError(f"You cannot create more than 100 dice per session. Contact @chewswisely with a very good reason if you believe you somehow need more.")
 
     if isinstance(self.get_die(scenario), Dice):
-      raise die_alr_exists_error.DieAlrExistsError(f"Dice with this scenario name: {scenario}, already exists.")
+      raise die_alr_exists_error.DieAlrExistsError(f"You lack originality. Die with this scenario name: **{scenario}**, already exists. Please think of an **original** scenario name.")

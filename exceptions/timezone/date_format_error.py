@@ -1,12 +1,9 @@
-class DateFormatError(Exception):
+from exceptions.quote_bot_errors import SoftError
+
+class DateFormatError(SoftError):
   """
   Exception raised when the date format is wrong.
   Should be DD/MM/YYYY
   """
-  def __init__(self, msg: str):
-    super().__init__(msg)
-
-# try:
-#   raise DateFormatError("Failed to clear the queue due to an unexpected error.")
-# except DateFormatError as itfe:
-#   print(f"Error: {itfe}")
+  def __init__(self, message: str = "Date is not in the format DD/MM/YYYY."):
+    super().__init__(message)

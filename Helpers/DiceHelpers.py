@@ -16,7 +16,7 @@ def compute_roll(die_num: int, addon: int | None=0) -> str:
     InvalidFacesError: invalid number of faces specified.
   """
   if not check_die_faces(die_num):
-    raise invalid_faces_error.InvalidFacesError
+    raise invalid_faces_error.InvalidFacesError(f"I do not know what a D{die_num} is. Choose a die that has either 4 or 6 or more faces ya bingus")
   
   # addon is optional, only added if specified by user
   if not addon:

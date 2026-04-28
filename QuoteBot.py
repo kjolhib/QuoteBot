@@ -1,5 +1,6 @@
 import discord
 import os
+import asyncio
 from dotenv import load_dotenv
 from discord import app_commands
 from typing import Optional
@@ -9,8 +10,9 @@ from interaction_type import QuoteBotInteraction
 # Helper Imports
 from classes.quote_bot import QuoteBot
 from commands import utils, dnd, quotes, music
-from helpers.UtilityHelpers import with_timeout
+from helpers.UtilityHelpers import with_timeout, safe_send
 from exceptions.error_handler import configure_logging, report_error
+from exceptions.quote_bot_errors import SoftError, HardError
 
 # Init error logging
 configure_logging()
@@ -58,6 +60,27 @@ async def on_ready():
       print(f"[ERROR] syncing commands to guild {guild_id}: {e}")
     # await channel.send("QuoteBot is now online.")
 
+@client.tree.error
+async def on_command_error(interaction: QuoteBotInteraction, error: app_commands.AppCommandError):
+  """
+  Any errors propagated by any command is caught and handled here.
+
+  Checks whether or not the error is a QuoteBotError, a custom class that includes a `message` attribute.
+  
+  QuoteBot Errors:
+    - `SoftError`: an error that is a clean and usually edge-case or user-based error, not reported to logs
+    - `HardError`: an error that is not trivial, and usually shouldn't have happened. Reported to logs
+  """
+  if isinstance(error, SoftError):
+    await safe_send(interaction, error.message)
+  elif isinstance(error, HardError):
+    report_error(f"{error.ctx}", error, error.ext_info)
+    await safe_send(interaction, error.message)
+  else:
+    report_error("on_app_command_error", error, "uncaught exception in global error handler")
+    await safe_send(interaction, f"An unknown error occurred. Check logs for more details.")
+  
+
 # TODO: implement a loop that checks session active timer
 
 @client.tree.command(name="start", description="Starts a dnd session")
@@ -82,18 +105,18 @@ async def end(interaction: QuoteBotInteraction):
   """
   await dnd.run_end(interaction)
 
-@client.tree.command(name="new_die", description="Creates a new die instance with a scenario, with its own weights (dnd shi)")
+@client.tree.command(name="add_die", description="Creates a new die instance with a scenario, with its own weights (dnd shi)")
 @app_commands.describe(scenario="What do you want to use this die for?")
 @app_commands.describe(faces="The number of faces this die has")
 @with_timeout(timeout=3)
-async def new_die(interaction: QuoteBotInteraction, scenario: str, faces: int):
+async def add_die(interaction: QuoteBotInteraction, scenario: str, faces: int):
   """
   Creates a new die instance named scenario with die_num number of faces.
   Args:
     scenario: the scenario the die would be used in, is weighted.
     die_num: the number of faces this die has. num != 4 and num > 5.
   """
-  await dnd.run_new_die(interaction, scenario, faces)
+  await dnd.run_add_die(interaction, scenario, faces)
 
 @client.tree.command(name="remove_die", description="Deletes an instace die from this session")
 @app_commands.describe(scenario="What is the scenario name of the die you want to remove?")
@@ -324,7 +347,7 @@ async def rand(interaction: QuoteBotInteraction, user : discord.Member, limit : 
     Returns:
       A random message sent by a user in the last specified number of messages.
   """
-  await quotes.run_rand(interaction, user, limit=limit, min_count=min_count)
+  await quotes.run_rand_message(interaction, user, limit=limit, min_count=min_count)
 
 @client.tree.command(name="repeat_after_me", description="Repeats what you say (no rude words you goober)")
 @app_commands.describe(string="The string you want me to repeat")
@@ -394,11 +417,17 @@ async def timezone(
   )
 
 if __name__ == "__main__":
-  # Runs the bot
+  async def main():
+    async with client:
+      # Runs the bot
+      try:
+        assert BOT_TOKEN
+        print("QuoteBot: Starting bot...")
+        await client.start(BOT_TOKEN)
+      except KeyboardInterrupt:
+        print("QuoteBot: Shutting down...")
+
   try:
-    print("QuoteBot: Starting bot...")
-    client.run(BOT_TOKEN)
-  except Exception as e:
-    report_error("error starting bot (are you connected to the internet?): ", e)
-    print(f"[ERROR]: run bot: Are you connected to the internet?")
-    print(e)
+    asyncio.run(main())
+  except KeyboardInterrupt:
+    pass

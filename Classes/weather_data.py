@@ -69,7 +69,7 @@ class WeatherData():
       string: the weather that got chosen
     """
     if not self.data:
-      raise weather_empty_error.WeatherEmptyError(f"[select_weighted_random]: Weather dictionary is empty.")
+      raise weather_empty_error.WeatherEmptyError()
     total = sum(self.data.values())
     if total == 0:
       # empty
@@ -119,7 +119,7 @@ class WeatherData():
       WeatherMissingError: weather is not found
     """
     if w not in self.data:
-      raise weather_missing_error.WeatherMissingError(f"[increment_val]: Weather {w} not found in weather data.")
+      raise weather_missing_error.WeatherMissingError(f"This should not have happened. A weather that doesn't exist in the dictionary was chosen.")
     self.data[w] += 1
 
   def add_new_weather(self, w: str) -> None:
@@ -132,7 +132,7 @@ class WeatherData():
       WeatherExistsError: if weather already exists
     """
     if w in self.data:
-      raise weather_exists_error.WeatherExistsError(f"[add_new_weather]: Weather {w} already exists.")
+      raise weather_exists_error.WeatherExistsError(f"Weather {w} already exists!")
     
     self.data[w] = 0
 
@@ -148,7 +148,7 @@ class WeatherData():
       WeatherMissingError: if weather does not exist
     """
     if w not in self.data:
-      raise weather_missing_error.WeatherMissingError(f"[remove_weather]: Weather {w} missing from dictionary.")
+      raise weather_missing_error.WeatherMissingError(f"Weather {w} cannot be removed because it does not exist. Create it first with /add_weather, you forehead.")
     
     c = self.data[w]
     del self.data[w]
@@ -167,9 +167,9 @@ class WeatherData():
       NegativeCountError: attempting to modify a weather's count to negative
     """
     if w not in self.data:
-      raise weather_missing_error.WeatherMissingError(f"[modify_weather]: Weather {w} does not exist in dictionary.")
+      raise weather_missing_error.WeatherMissingError(f"You cannot modify weather {w} because it does not exist. Create it first with /add_weather, you forehead.")
     if new_c < 0:
-      raise negative_count_error.NegativeCountError(f"You cannot modify count to a negative value.")
+      raise negative_count_error.NegativeCountError(f"Weather {w} cannot be rolled a negative number of times, no matter how special this weather is.")
     old_c = self.data[w]
     self.data[w] = new_c
     return old_c
