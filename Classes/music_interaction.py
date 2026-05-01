@@ -1,6 +1,6 @@
 import discord
-from classes.guild_state import GuildState
 
+from classes.guild_state import GuildState
 from interaction_type import QuoteBotInteraction
 from helpers.UtilityHelpers import safe_send, safe_edit
 from exceptions.voice import no_voice_error, not_playing_error
@@ -119,5 +119,20 @@ class MusicInteractiveView(discord.ui.View):
     # If the message still exists, update it
     if self.message:
       print("[QUEUE VIEW]: updating original message...")
-      expired_embed = discord.Embed(title="**MusicPlayer**", description=reason, colour=discord.Colour.dark_grey())
-      await self.message.edit(embed=expired_embed, view=self)
+      embed = discord.Embed(title="Nothing playing.")
+
+      # Add onto the embed based on the following:
+      if self.state.current:
+        # If a song is playing:
+        embed = discord.Embed(title=f"Now Playing: ", description=f"**{self.state.current.title}** [{self.state.current.format_duration}]")
+      
+      if len(self.state.queue) > 0 and self.state.current:
+        # If the queue is not empty.
+        # Current should also never be None.
+        queue_str = "\n".join(f"`{i}`. {song.title} [{song.format_duration}]" for i, song in enumerate(self.state.queue, start=1))
+        embed.add_field(name="Queue: ", value=queue_str, inline=False)
+
+
+      embed.set_footer(text=reason)
+      await self.message.edit(embed=embed, view=self)
+      

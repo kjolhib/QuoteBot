@@ -5,6 +5,7 @@ from typing import Optional, TYPE_CHECKING
 
 from .dnd_session import DnDSession
 from .dice import Dice
+from .song import Song
 from exceptions.guild import missing_session_error
 from exceptions.voice import clear_queue_error
 
@@ -21,18 +22,17 @@ class GuildState:
     self.dnd_session : DnDSession | None = None # None initially
 
     # Music
-    self.queue: deque[tuple[str, str]] = deque() # Queue of the songs
+    self.queue: deque[Song] = deque() # Queue of the songs
     """
     Format of the queue:
       {
         guild_id: deque([
-          (youtube link: string, title: string),
-          ...
+          Song
         ])
       }
     """
     self.voice_client: discord.VoiceClient | None = None
-    self.current: tuple[str, str] | None = None # current song, containing url, title
+    self.current: Song | None = None # current song, containing url, title
     self.repeat: bool = False # repeats current song
     self.active_view: Optional["MusicInteractiveView"] = None # the current view maintained by /queue command
 
@@ -66,7 +66,9 @@ class GuildState:
     """
     Clears the queue.
 
-    Sets current to `None` and `repeat` to False.
+    Sets `repeat` to False.
+
+    Current song will play to completion, and will only stop if skipped or bot leaves.
     """
     try:
       # Clear queue
@@ -77,12 +79,12 @@ class GuildState:
       raise clear_queue_error.ClearQueueError(f"There was an error clearing the queue. Check logs for more details", "clear_queue", "somehow .clear() or .stop() failed")
 
   def q_to_embed(self) -> discord.Embed:
-    embed = discord.Embed(title="Now Playing: ", description=f"**{self.current[1]}**" if self.current else "Nothing playing.")
+    embed = discord.Embed(title="Now Playing: " if self.current else "Nothing playing.", description=f"**{self.current.title}** [{self.current.format_duration}]" if self.current else "")
     if self.queue:
       # Format the queue as:
       #   1. SongTitle 
       #   2. ...
-      queue_str = "\n".join(f"`{i}`. {title}" for i, (_, title) in enumerate(self.queue, start=1))
+      queue_str = "\n".join(f"`{i}`. {song.title} [{song.format_duration}]" for i, song in enumerate(self.queue, start=1))
       embed.add_field(name="Queue: ", value=queue_str, inline=False)
 
     # make it look nicer with the bottom 4 buttons

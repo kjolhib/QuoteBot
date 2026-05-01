@@ -59,19 +59,18 @@ async def run_play(interaction: QuoteBotInteraction, query: str):
     },
     "remote_components": ["ejs:github", "ejs:npm"]
   }
-  track = await search_first_track(query, ydl_options)
-  if not track:
+  song = await search_first_track(query, ydl_options)
+  if not song:
     await safe_send(interaction, f"No results found.")
     return
 
   # Queue or play
-  audio_url, title = track
-  print(f"[PLAY] Found track: {title}")
-  state.queue.append((audio_url, title))
+  print(f"[PLAY] Found track: {song.title}")
+  state.queue.append(song)
 
   # if currently playing or paused, send notifiaction that the song is added to queue.
   if vc.is_playing() or vc.is_paused():
-    await safe_send(interaction, f"Added to queue: **{title}**.")
+    await safe_send(interaction, f"Added to queue: **{song.title}** [{song.format_duration}].")
   else:
     # otherwise, play the song now.
     await play_next_song(interaction, state)
@@ -165,7 +164,7 @@ async def run_repeat(interaction: QuoteBotInteraction):
   
   # flip flop: loop <-> no loop
   state.repeat = not state.repeat
-  msg = f"Looping current song: **{state.current[1]}**" if state.repeat else "Will now stop looping."
+  msg = f"Looping current song: **{state.current.title}** [{state.current.format_duration}]" if state.repeat else "Will now stop looping."
   await safe_send(interaction, msg)
 
 @bot_require_voice_client

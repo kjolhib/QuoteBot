@@ -5,6 +5,7 @@ from typing import Any
 
 from interaction_type import QuoteBotInteraction
 
+from classes.song import Song
 from exceptions.voice import user_in_stage_vc_error, user_not_in_vc_error, no_voice_error
 from exceptions.voice import after_play_error
 from .UtilityHelpers import safe_send
@@ -43,20 +44,20 @@ async def play_next_song(interaction: QuoteBotInteraction, state: GuildState):
   
   if state.repeat and state.current:
     # Loop current song
-    audio_url, title = state.current
-    now_msg = f"Now repeating: **{title}**"
+    song = state.current
+    now_msg = f"Now repeating: **{song.title}** [{song.format_duration}]"
   elif state.queue:
     # no loop, pop next in queue and play
-    audio_url, title = state.queue.popleft()
-    state.current = (audio_url, title)
-    now_msg = f"Now playing: **{title}**"
+    song = state.queue.popleft()
+    state.current = song
+    now_msg = f"Now playing: **{song.title}** [{song.format_duration}]"
   else:
     # Nothing to play, disconnect
     await state.cleanup_voice()
     print("[PLAY]: Disconnecting from voice call since no songs.")
     return
   
-  source = discord.FFmpegOpusAudio(audio_url, **ffmpeg_options) # type: ignore
+  source = discord.FFmpegOpusAudio(song.url, **ffmpeg_options) # type: ignore
   
   # play song
   state.voice_client.play(source, after=after_play)
@@ -85,7 +86,7 @@ async def ensure_vc(interaction: QuoteBotInteraction, user: discord.Member, play
 
   return await _bot_join_vc(interaction, user_channel, user_name, play_cmd) # type: ignore
   
-async def search_first_track(query: str, ydl_options: dict[str, Any]) -> tuple[str, str] | None:
+async def search_first_track(query: str, ydl_options: dict[str, Any]) -> Song | None:
   """
   Searches the query and returns the first track's audio url and title.
   Returns:
@@ -99,7 +100,7 @@ async def search_first_track(query: str, ydl_options: dict[str, Any]) -> tuple[s
     return None
   
   first = tracks[0]
-  return first["url"], first.get("title", "Untitled")
+  return Song(title=first.get("title", "Untitled"), url=first["url"], song_length=first.get("duration", 0))
 
 async def _bot_join_vc(interaction: QuoteBotInteraction, user_channel: discord.VoiceChannel, user_name: str, play_cmd: bool):
   """
