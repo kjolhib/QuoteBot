@@ -4,7 +4,7 @@ from typing import Optional
 from interaction_type import QuoteBotInteraction
 
 from helpers.TimezoneHelpers import format_AEST
-from helpers.UtilityHelpers import safe_send, safe_send_embed, safe_send_file
+from helpers.UtilityHelpers import safe_send
 from helpers.DnDHelpers import *
 from classes import weather_data as wd
 
@@ -136,7 +136,7 @@ async def run_list_die(interaction: QuoteBotInteraction):
 
   session = state.dnd_session
   embed = session.list_dice() # raises error if no dice in session
-  await safe_send_embed(interaction, embed)
+  await safe_send(interaction, embeds=embed)
 
 @require_valid_session
 async def run_generate_weather(interaction: QuoteBotInteraction):
@@ -174,7 +174,7 @@ async def run_weather_list(interaction: QuoteBotInteraction):
   data= wd.load_weather()
   embed = data.list_to_embed()
   
-  await safe_send_embed(interaction, embeds=embed)
+  await safe_send(interaction, embeds=embed)
 
 @require_valid_session
 async def run_reset_weather_dict(interaction: QuoteBotInteraction):
@@ -258,7 +258,7 @@ async def run_output_json_file(interaction: QuoteBotInteraction) -> None:
   weather_path = wd.get_weather_path()
   with open(f"{weather_path}", "rb") as f:
     file = discord.File(f, filename="weather_probabilities.json")
-    await safe_send_file(interaction, file=file)
+    await safe_send(interaction, file=file)
 
 
 async def run_weather_stats(interaction: QuoteBotInteraction):
@@ -281,4 +281,4 @@ async def run_weather_stats(interaction: QuoteBotInteraction):
   stats = data.statistics()
   embed = stats.to_embed()
 
-  await safe_send_embed(interaction, embed)
+  await safe_send(interaction, embeds=embed)

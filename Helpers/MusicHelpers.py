@@ -5,7 +5,7 @@ from typing import Any
 
 from interaction_type import QuoteBotInteraction
 
-from exceptions.voice import clear_queue_error, user_in_stage_vc_error, user_not_in_vc_error, no_voice_error
+from exceptions.voice import user_in_stage_vc_error, user_not_in_vc_error, no_voice_error
 from exceptions.voice import after_play_error
 from .UtilityHelpers import safe_send
 from classes.guild_state import GuildState
@@ -52,9 +52,8 @@ async def play_next_song(interaction: QuoteBotInteraction, state: GuildState):
     now_msg = f"Now playing: **{title}**"
   else:
     # Nothing to play, disconnect
-    await state.voice_client.disconnect()
-    print("Disconnecting from voice call since no songs.")
-    state.current = None
+    await state.cleanup_voice()
+    print("[PLAY]: Disconnecting from voice call since no songs.")
     return
   
   source = discord.FFmpegOpusAudio(audio_url, **ffmpeg_options) # type: ignore
@@ -85,24 +84,6 @@ async def ensure_vc(interaction: QuoteBotInteraction, user: discord.Member, play
     raise user_in_stage_vc_error.UserInStageVcError()
 
   return await _bot_join_vc(interaction, user_channel, user_name, play_cmd) # type: ignore
-  
-async def clear_queue(state: GuildState):
-  """
-  Clears the queue.
-
-  Sets current to `None` and `repeat` to False.
-  """
-  try:
-    # Clear queue
-    if len(state.queue) > 1:
-      state.queue.clear()
-      state.current = None
-      state.repeat = False
-
-      if state.voice_client and (state.voice_client.is_playing() or state.voice_client.is_paused()):
-        state.voice_client.stop()
-  except Exception:
-    raise clear_queue_error.ClearQueueError(f"There was an error clearing the queue. Check logs for more details", "clear_queue", "somehow .clear() or .stop() failed")
   
 async def search_first_track(query: str, ydl_options: dict[str, Any]) -> tuple[str, str] | None:
   """

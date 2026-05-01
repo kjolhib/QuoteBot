@@ -263,9 +263,9 @@ async def leave(interaction: QuoteBotInteraction):
 
 @client.tree.command(name="play", description="Play a youtube link")
 @app_commands.guilds(*[discord.Object(id=id) for id in GUILD_IDS_PRIVATE])
-@app_commands.describe(link="The query or link to a Youtube video")
-@with_timeout(timeout=10)
-async def play(interaction: QuoteBotInteraction, link: str):
+@app_commands.describe(query="The query or link to a Youtube video")
+@with_timeout(timeout=15)
+async def play(interaction: QuoteBotInteraction, query: str):
   """
   Plays music specified by the user.
   
@@ -273,7 +273,7 @@ async def play(interaction: QuoteBotInteraction, link: str):
   Args:
     link: the link/query the user inputs to play
   """
-  await music.run_play(interaction, link)
+  await music.run_play(interaction, query)
 
 @client.tree.command(name="skip", description="Skip the current song")
 @app_commands.guilds(*[discord.Object(id=id) for id in GUILD_IDS_PRIVATE])
@@ -286,8 +286,8 @@ async def skip(interaction: QuoteBotInteraction):
 
 @client.tree.command(name="queue", description="Lists the songs in the queue")
 @app_commands.guilds(*[discord.Object(id=id) for id in GUILD_IDS_PRIVATE])
-@with_timeout(timeout=2)
-async def list_queue(interaction: QuoteBotInteraction):
+@with_timeout(timeout=3)
+async def queue(interaction: QuoteBotInteraction):
   """
   Lists the songs in the queue.
   Returns:
@@ -416,18 +416,22 @@ async def timezone(
     date_str
   )
 
-if __name__ == "__main__":
-  async def main():
-    async with client:
-      # Runs the bot
-      try:
-        assert BOT_TOKEN
-        print("QuoteBot: Starting bot...")
-        await client.start(BOT_TOKEN)
-      except KeyboardInterrupt:
-        print("QuoteBot: Shutting down...")
+async def main():
+  async with client:
+    # Runs the bot
+    try:
+      assert BOT_TOKEN
+      print("QuoteBot: Starting bot...")
+      await client.start(BOT_TOKEN)
+    except Exception as e:
+      print(f"Error starting the bot: {e}")
+      report_error("main", e, "attempted to run the bot, perhaps the bot token was None?")
 
+if __name__ == "__main__":
   try:
     asyncio.run(main())
   except KeyboardInterrupt:
-    pass
+    print("QuoteBot: Shutting down...")
+  except Exception as e:
+    print(f"Error shutting down: {e}")
+    report_error("main", e, "attempted to stop the bot")

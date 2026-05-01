@@ -2,10 +2,10 @@ import discord
 from typing import Any
 
 from interaction_type import QuoteBotInteraction
-
-from exceptions.voice import join_vc_error
-from helpers.MusicHelpers import search_first_track, play_next_song, clear_queue, ensure_vc
+from classes.music_interaction import MusicInteractiveView
+from helpers.MusicHelpers import search_first_track, play_next_song, ensure_vc
 from helpers.UtilityHelpers import bot_require_voice_client, safe_send
+from exceptions.voice import join_vc_error
 
 async def run_join(interaction: QuoteBotInteraction):
   """
@@ -85,7 +85,8 @@ async def run_skip(interaction: QuoteBotInteraction) -> None:
   """
   state = interaction.client.get_guild_state(str(interaction.guild_id))
   if not state or not state.voice_client or not state.voice_client.is_playing():
-    return await safe_send(interaction, "No songs playing.")
+    await safe_send(interaction, "No songs playing.")
+    return
   
   state.voice_client.stop() # triggers playnextsong
   await safe_send(interaction, "Skipping current song...")
@@ -100,7 +101,8 @@ async def run_pause(interaction: QuoteBotInteraction) -> None:
 
   # If not playing
   if not vc.is_playing():
-    return await safe_send(interaction, "No songs are playing ya bingus.")
+    await safe_send(interaction, "No songs are playing ya bingus.")
+    return
   
   # Pause the track
   vc.pause()
@@ -134,8 +136,7 @@ async def run_leave(interaction: QuoteBotInteraction) -> None:
   """
   state = interaction.client.get_guild_state(str(interaction.guild_id))
 
-  await clear_queue(state)
-  await state.voice_client.disconnect() # type: ignore
+  await state.cleanup_voice()
   await safe_send(interaction, "I hath vanished.")
 
 @bot_require_voice_client
@@ -148,7 +149,7 @@ async def run_clear_queue(interaction: QuoteBotInteraction) -> None:
   """
   state = interaction.client.get_guild_state(str(interaction.guild_id))
 
-  await clear_queue(state)
+  await state.clear_queue()
   await safe_send(interaction, "Queue cleared.")
 
 @bot_require_voice_client
@@ -164,7 +165,7 @@ async def run_repeat(interaction: QuoteBotInteraction):
   
   # flip flop: loop <-> no loop
   state.repeat = not state.repeat
-  msg = f"Looping current song: {state.current[1]}" if state.repeat else "Will now stop looping."
+  msg = f"Looping current song: **{state.current[1]}**" if state.repeat else "Will now stop looping."
   await safe_send(interaction, msg)
 
 @bot_require_voice_client
@@ -183,16 +184,20 @@ async def run_list_queue(interaction: QuoteBotInteraction):
   
   # empty queue
   if not state.queue and not state.current:
-    await interaction.followup.send("Queue is empty.")
+    await safe_send(interaction, "Queue is empty.")
     return
   
   # Current title and the queue formatting
-  cur_title = state.current[1] if state.current else "Nothing Playing"
-  result = f"Currently playing: **{cur_title}** \n**Current Queue:**\n"
-  for idx, (_, title) in enumerate(state.queue, start=1):
-    result += f"{idx}. {title}\n"
-  
-  await safe_send(interaction, result)
+  # cur_title = state.current[1] if state.current else "Nothing Playing"
+  # result = f"Currently playing: **{cur_title}** \n**Current Queue:**\n"
+  # for idx, (_, title) in enumerate(state.queue, start=1):
+  #   result += f"{idx}. {title}\n"
+  # await safe_send(interaction, result)
+  embed = state.q_to_embed()
+  view = MusicInteractiveView(state)
+  msg = await safe_send(interaction, embeds=embed, view=view)
+  view.message = msg
+  state.active_view = view
 
 """
 Helper functions

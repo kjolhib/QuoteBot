@@ -2,7 +2,7 @@ import asyncio
 import discord
 import time
 from functools import wraps
-from typing import Callable, Awaitable, TypeVar
+from typing import Callable, Awaitable, TypeVar, Optional, Any
 from typing_extensions import ParamSpec
 
 from interaction_type import QuoteBotInteraction
@@ -13,32 +13,79 @@ from exceptions.utils import TimeoutError
 P = ParamSpec("P")
 R = TypeVar("R")
 
-async def safe_send(interaction: discord.Interaction, message: str, ephemeral: bool=False) -> None:
+async def safe_send(
+  interaction: QuoteBotInteraction,
+  message: Optional[str] = None,
+  embeds: Optional[discord.Embed] = None,
+  view: Optional[discord.ui.View] = None,
+  file: Optional[discord.File] = None,
+  ephemeral: bool = False
+) -> discord.Message:
   """
-  Sends bot response depending on whether or not interaction is deferred
-  """
-  if interaction.response.is_done():
-    await interaction.followup.send(message, ephemeral=ephemeral)
-  else:
-    await interaction.response.send_message(message, ephemeral=ephemeral)
+  Sends bot response depending on whether or not interaction is deferred.
 
-async def safe_send_embed(interaction: discord.Interaction, embeds: discord.Embed) -> None:
-  """
-  Sends embed depending on deference
-  """
-  if interaction.response.is_done():
-    await interaction.followup.send(embeds=[embeds])
-  else:
-    await interaction.response.send_message(embeds=[embeds])
+  Unified for all embeds, view, and files.
 
-async def safe_send_file(interaction: discord.Interaction, file: discord.File):
+  Args:
+    interaction: should always be given. The interaction that called this command.
+    message: optional. The message to be sent.
+    embed: optional. The embed to be sent.
+    view: optional. The view to be sent.
+    file: optional. The file to be sent.
+    ephemeral: whether or not the message is only seen by the user who called the command.
+
+  Returns:
+    msg: the message the interaction sent.
   """
-  Sends a file depending on deference
-  """
+  kwargs: dict[Any, Any] = {"ephemeral": ephemeral}
+  if message:
+    kwargs["content"] = message
+  if embeds:
+    kwargs["embeds"] = [embeds]
+  if view:
+    kwargs["view"] = view
+  if file:
+    kwargs["file"] = file
+  
   if interaction.response.is_done():
-    await interaction.followup.send(file=file)
+    return await interaction.followup.send(**kwargs, wait=True)
   else:
-    await interaction.response.send_message(file=file)
+    await interaction.response.send_message(**kwargs)
+    return await interaction.original_response()
+
+async def safe_edit(
+  interaction: QuoteBotInteraction,
+  message: Optional[str] = None,
+  embed: Optional[discord.Embed] = None,
+  view: Optional[discord.ui.View] = None,
+  message_id: Optional[int] = None
+):
+  """
+  Edits original response.
+
+  May also edit buttons on views.
+
+  This is used inside button callbacks to refresh the message in-place.
+
+  Edits based on deference.
+
+  Note: followup.edit_message needs a message_id. Pass if possible, otherwise this will just use the original interaction's response.
+  """
+  kwargs: dict[Any, Any] = {}
+  if embed:
+    kwargs["embeds"] = [embed]
+  if view:
+    kwargs["view"] = view
+  if message:
+    kwargs["content"] = message
+  
+  if not message_id:
+    if interaction.response.is_done():
+      return await interaction.edit_original_response(**kwargs)
+    else:
+      return await interaction.response.edit_message(**kwargs)
+  else:
+    await interaction.followup.edit_message(message_id=message_id, **kwargs)
 
 async def timeout_err(interaction: discord.Interaction):
   """
@@ -69,7 +116,7 @@ def with_timeout(timeout: float = 7.0):
         
         # run original commadn with timeout
         await asyncio.wait_for(func(interaction, *args, **kwargs), timeout=timeout) # type: ignore
-      except TimeoutError:
+      except asyncio.TimeoutError:
         raise TimeoutError(f"Command {func.__name__} timed out.", func.__name__, "")
       except QuoteBotError:
         raise
