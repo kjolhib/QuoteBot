@@ -11,7 +11,7 @@ from exceptions.voice import clear_queue_error
 
 # avoiding circular import
 if TYPE_CHECKING:
-  from .music_interaction import MusicInteractiveView
+  from .music_interaction import MusicPlayer
 
 class GuildState:
   """
@@ -34,7 +34,7 @@ class GuildState:
     self.voice_client: discord.VoiceClient | None = None
     self.current: Song | None = None # current song, containing url, title
     self.repeat: bool = False # repeats current song
-    self.active_view: Optional["MusicInteractiveView"] = None # the current view maintained by /queue command
+    self.active_view: Optional["MusicPlayer"] = None # the current view maintained by /queue command
 
   def start(self, time: float, dice: list[Dice] = []):
     """
@@ -88,7 +88,7 @@ class GuildState:
       embed.add_field(name="Queue: ", value=queue_str, inline=False)
 
     # make it look nicer with the bottom 4 buttons
-    embed.set_footer(text=f"Repeat: {'On' if self.repeat else 'Off'}\n{len(self.queue)} songs in queue.")
+    embed.add_field(name="",value=f"Repeat: {'On' if self.repeat else 'Off'}\n{len(self.queue)} songs in queue.")
     return embed
   
   async def cleanup_voice(self):
@@ -101,14 +101,14 @@ class GuildState:
       self.current = None
       await self.clear_queue()
       await self.voice_client.disconnect()
-      await self.cleanup_view()
+      await self.cleanup_view("Left the vc by command.")
 
-  async def cleanup_view(self):
+  async def cleanup_view(self, reason: str = "*All songs have been played."):
     """
     Cleans up expired/disabled view.
 
     Will send a message and then disable all buttons.
     """
     if self.active_view:
-      await self.active_view.expire_cleanup("*All songs have been played.*")
+      await self.active_view.expire_cleanup(reason)
       self.active_view = None

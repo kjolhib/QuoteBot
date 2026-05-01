@@ -120,6 +120,9 @@ def with_timeout(timeout: float = 7.0):
         raise TimeoutError(f"Command {func.__name__} timed out.", func.__name__, "")
       except QuoteBotError:
         raise
+      except discord.errors.NotFound:
+        print(f"[TIMEOUT]: [{func.__name__}] Interaction expired before defer.")
+        raise
       finally:
         end = time.perf_counter()
         print(f"[{(func.__name__).upper()}] executed in {end-start:.3f}s")

@@ -2,7 +2,7 @@ import discord
 from typing import Any
 
 from interaction_type import QuoteBotInteraction
-from classes.music_interaction import MusicInteractiveView
+from classes.music_interaction import MusicPlayer
 from helpers.MusicHelpers import search_first_track, play_next_song, ensure_vc
 from helpers.UtilityHelpers import bot_require_voice_client, safe_send
 from exceptions.voice import join_vc_error
@@ -186,14 +186,11 @@ async def run_list_queue(interaction: QuoteBotInteraction):
     await safe_send(interaction, "Queue is empty.")
     return
   
+  await state.cleanup_view("*Another MusicPlayer has been created.")
+
   # Current title and the queue formatting
-  # cur_title = state.current[1] if state.current else "Nothing Playing"
-  # result = f"Currently playing: **{cur_title}** \n**Current Queue:**\n"
-  # for idx, (_, title) in enumerate(state.queue, start=1):
-  #   result += f"{idx}. {title}\n"
-  # await safe_send(interaction, result)
   embed = state.q_to_embed()
-  view = MusicInteractiveView(state)
+  view = MusicPlayer(state)
   msg = await safe_send(interaction, embeds=embed, view=view)
   view.message = msg
   state.active_view = view

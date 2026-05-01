@@ -5,7 +5,7 @@ from interaction_type import QuoteBotInteraction
 from helpers.UtilityHelpers import safe_send, safe_edit
 from exceptions.voice import no_voice_error, not_playing_error
 
-class MusicInteractiveView(discord.ui.View):
+class MusicPlayer(discord.ui.View):
   """
   For when /queue is called, creates an interactable view.
   
@@ -34,14 +34,15 @@ class MusicInteractiveView(discord.ui.View):
     is_playing = vc and vc.is_playing()
     is_paused = vc and vc.is_paused()
 
-    self.pause_resume.label = "⏸" if is_paused else "▶"
-    self.pause_resume.style = (discord.ButtonStyle.blurple if is_paused else discord.ButtonStyle.green)
+    self.pause_resume.label = "▶" if is_paused else "⏸"
+    # green when paused, grey when playing
+    self.pause_resume.style = (discord.ButtonStyle.green if is_paused else discord.ButtonStyle.primary)
     self.pause_resume.disabled = not (is_playing or is_paused)
     self.skip.disabled = not is_playing
-    self.repeat.style = (discord.ButtonStyle.green if self.state.repeat else discord.ButtonStyle.grey)
+    self.repeat.style = (discord.ButtonStyle.green if self.state.repeat else discord.ButtonStyle.primary)
 
-  @discord.ui.button(label="⏯", style=discord.ButtonStyle.blurple, row=0)
-  async def pause_resume(self, interaction: QuoteBotInteraction, _: discord.ui.Button["MusicInteractiveView"]):
+  @discord.ui.button(label="⏯", style=discord.ButtonStyle.primary, row=0)
+  async def pause_resume(self, interaction: QuoteBotInteraction, _: discord.ui.Button["MusicPlayer"]):
     """
     Creates the pause/resume buttons.
     
@@ -58,8 +59,8 @@ class MusicInteractiveView(discord.ui.View):
     self._update_buttons()
     await safe_edit(interaction, embed=self.state.q_to_embed(), view=self)
 
-  @discord.ui.button(label="⏭", style=discord.ButtonStyle.blurple, row=0)
-  async def skip(self, interaction: QuoteBotInteraction, _: discord.ui.Button["MusicInteractiveView"]):
+  @discord.ui.button(label="⏭", style=discord.ButtonStyle.primary, row=0)
+  async def skip(self, interaction: QuoteBotInteraction, _: discord.ui.Button["MusicPlayer"]):
     """
     Creates the skip button.
     """
@@ -72,7 +73,7 @@ class MusicInteractiveView(discord.ui.View):
     await safe_send(interaction, "Skipping song...", ephemeral=True)
 
   @discord.ui.button(label="🗑️", style=discord.ButtonStyle.red, row=0)
-  async def clear(self, interaction: QuoteBotInteraction, _: discord.ui.Button["MusicInteractiveView"]):
+  async def clear(self, interaction: QuoteBotInteraction, _: discord.ui.Button["MusicPlayer"]):
     """
     Creates clear button.
     """
@@ -80,8 +81,8 @@ class MusicInteractiveView(discord.ui.View):
     self._update_buttons()
     await safe_edit(interaction, embed=self.state.q_to_embed(), view=self)
 
-  @discord.ui.button(label="🔁︎", style=discord.ButtonStyle.grey, row=0)
-  async def repeat(self, interaction: QuoteBotInteraction, _: discord.ui.Button["MusicInteractiveView"]):
+  @discord.ui.button(label="🔁︎", style=discord.ButtonStyle.blurple, row=0)
+  async def repeat(self, interaction: QuoteBotInteraction, _: discord.ui.Button["MusicPlayer"]):
     """
     Creates repeat button.
     """
@@ -96,7 +97,7 @@ class MusicInteractiveView(discord.ui.View):
     """
     Disables all buttons when the view expires after 60 seconds
     """
-    await self.expire_cleanup("*Controls have expired after 60 seconds.*")
+    await self.expire_cleanup("*Controls have expired after 60 seconds.")
 
   async def expire_cleanup(self, reason: str):
     """

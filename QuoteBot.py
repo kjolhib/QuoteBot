@@ -76,6 +76,9 @@ async def on_command_error(interaction: QuoteBotInteraction, error: app_commands
   elif isinstance(error, HardError):
     report_error(f"{error.ctx}", error, error.ext_info)
     await safe_send(interaction, error.message)
+  elif isinstance(error, discord.errors.NotFound):
+    report_error("with_timeout", error, "usually cuased by interaction expiration of 3 seconds. Debugging causes this error, if not, then likely user's internet connection abruptly broken with discord api.")
+    return
   else:
     report_error("on_app_command_error", error, "uncaught exception in global error handler")
     await safe_send(interaction, f"An unknown error occurred. Check logs for more details.")
