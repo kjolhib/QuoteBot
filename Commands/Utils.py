@@ -3,9 +3,9 @@ from typing import Optional
 from interaction_type import QuoteBotInteraction
 
 # Helper imports
-from helpers.UtilityHelpers import safe_send
-from helpers.DiceHelpers import compute_roll
-from helpers.TimezoneHelpers import convert_time
+from helpers.utility_helpers import safe_send
+from helpers.dice_helpers import compute_roll
+from helpers.timezone_helpers import convert_time
 
 async def run_d(interaction: QuoteBotInteraction, die_num: int, addon: Optional[int]=0):
   """
@@ -38,7 +38,6 @@ async def run_timezone_converter(
     date_str
   )
 
-  # No errors
   await safe_send(interaction,
 f"""
 **Time Conversion:**

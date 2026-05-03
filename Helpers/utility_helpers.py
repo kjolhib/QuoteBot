@@ -1,3 +1,4 @@
+import os
 import asyncio
 import discord
 import time
@@ -69,7 +70,7 @@ async def safe_edit(
 
   Edits based on deference.
 
-  Note: followup.edit_message needs a message_id. Pass if possible, otherwise this will just use the original interaction's response.
+  Note: `followup.edit_message` needs a `message_id`. Pass if possible, otherwise this will just use the original interaction's response.
   """
   kwargs: dict[Any, Any] = {}
   if embed:
@@ -86,15 +87,6 @@ async def safe_edit(
       return await interaction.response.edit_message(**kwargs)
   else:
     await interaction.followup.edit_message(message_id=message_id, **kwargs)
-
-async def timeout_err(interaction: discord.Interaction):
-  """
-  Timeout error version of safe_send. 
-  """
-  if interaction.response.is_done():
-    await interaction.followup.send("Command timed out. Try again later.")
-  else:
-    await interaction.response.send_message("Command timed out. Try again later.")
 
 """
 Timeout factory
@@ -145,3 +137,13 @@ def bot_require_voice_client(func: Callable[P, Awaitable[R]]) -> Callable[P, Awa
       raise UserNotInVcError(f"You must be in a voice client to use this command.")
     return await func(*args, **kwargs) # type: ignore
   return wrapper
+
+def get_env(key: str) -> str:
+  """
+  Returns:
+    integer of an env string
+  """
+  val = os.getenv(key)
+  if val is None:
+    raise ValueError(f"QuoteBot: Environment Initialisation error: {key} not found/set.")
+  return val

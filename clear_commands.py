@@ -30,6 +30,7 @@ async def clear():
     tasks: Any = []
     for g in GUILD_IDS:
       guild = discord.Object(id=g)
+      # Syncing an empty tree to guild would just clear all registered slash commands
       tree.clear_commands(guild=guild)
       tasks.append(tree.sync(guild=guild))
       print(f"Cleared commands from guild {g}")

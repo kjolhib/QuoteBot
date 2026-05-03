@@ -2,9 +2,9 @@ import discord
 from typing import Any
 
 from interaction_type import QuoteBotInteraction
-from classes.music_interaction import MusicPlayer
-from helpers.MusicHelpers import search_first_track, play_next_song, ensure_vc
-from helpers.UtilityHelpers import bot_require_voice_client, safe_send
+from classes.music_player import MusicPlayer
+from helpers.music_helpers import search_first_track, play_next_song, ensure_vc
+from helpers.utility_helpers import bot_require_voice_client, safe_send
 from exceptions.voice import join_vc_error
 
 async def run_join(interaction: QuoteBotInteraction):
@@ -71,6 +71,10 @@ async def run_play(interaction: QuoteBotInteraction, query: str):
   # if currently playing or paused, send notifiaction that the song is added to queue.
   if vc.is_playing() or vc.is_paused():
     await safe_send(interaction, f"Added to queue: **{song.title}** [{song.format_duration}].")
+
+    # Append to the embed queue if one is active
+    if state.active_view:
+      await state.active_view.edit_view(embed=state.q_to_embed())
   else:
     # otherwise, play the song now.
     await play_next_song(interaction, state)
@@ -182,9 +186,9 @@ async def run_list_queue(interaction: QuoteBotInteraction):
   state = interaction.client.get_guild_state(str(interaction.guild_id))
   
   # empty queue
-  if not state.queue and not state.current:
-    await safe_send(interaction, "Queue is empty.")
-    return
+  # if not state.queue and not state.current:
+  #   await safe_send(interaction, "Queue is empty.")
+  #   return
   
   await state.cleanup_view("*Another MusicPlayer has been created.")
 
@@ -194,6 +198,42 @@ async def run_list_queue(interaction: QuoteBotInteraction):
   msg = await safe_send(interaction, embeds=embed, view=view)
   view.message = msg
   state.active_view = view
+
+async def run_nvnpna(interaction: QuoteBotInteraction):
+  """
+  Run it to find out what it does :)
+  """
+  url = "https://www.youtube.com/watch?v=e35P-W2Yoho"
+  ydl_opt: dict[str, Any] = {
+    "format": "bestaudio[abr<=96]/bestaudio",
+    "noplaylist": True
+  }
+
+  song = await search_first_track(url, ydl_options=ydl_opt)
+  if not song:
+    await safe_send(interaction, "This soundboard failed to get your funny clip. Try again.")
+    return
+  
+  state = interaction.client.get_guild_state(str(interaction.guild_id))
+  vc = state.voice_client
+  if not vc:
+    await safe_send(interaction, "I must be in a VC first! Use `/join`.")
+    return
+  
+  # check any songs are playing or queue has songs
+  is_playing_song = vc.is_playing()
+  if is_playing_song or state.queue:
+    await safe_send(interaction, "You can only use this command when the queue is empty and there isn't a song already playing.")
+    return
+
+  ffmpeg_opt: dict[str, Any] = {
+    "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
+    "options": "-vn -c:a libopus -b:a 96k"
+  }
+
+  source = discord.FFmpegOpusAudio(song.url, **ffmpeg_opt)
+  vc.play(source)
+  await safe_send(interaction, "You have invoked the passion, vision, and aggression.", ephemeral=True)
 
 """
 Helper functions
@@ -206,4 +246,3 @@ async def _ensure_voice(interaction: QuoteBotInteraction, play_cmd: bool=False) 
   if not isinstance(vc, discord.VoiceClient):
     raise join_vc_error.JoinVcError("An error occurred when attempting to join vc.", "_ensure_voice", "ensure_vc helper did not join vc. It should have checked whether or not client is in vc, if not, join it.")
   return vc
-

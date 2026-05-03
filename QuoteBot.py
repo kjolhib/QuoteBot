@@ -1,5 +1,4 @@
 import discord
-import os
 import asyncio
 from dotenv import load_dotenv
 from discord import app_commands
@@ -10,7 +9,7 @@ from interaction_type import QuoteBotInteraction
 # Helper Imports
 from classes.quote_bot import QuoteBot
 from commands import utils, dnd, quotes, music
-from helpers.UtilityHelpers import with_timeout, safe_send
+from helpers.utility_helpers import with_timeout, safe_send, get_env
 from exceptions.error_handler import configure_logging, report_error
 from exceptions.quote_bot_errors import SoftError, HardError
 
@@ -19,23 +18,12 @@ configure_logging()
 
 # Load env data
 load_dotenv()
-def get_env(key: str) -> int:
-  """
-  Returns:
-    integer of an env string
-  """
-  val = os.getenv(key)
-  if val is None:
-    raise ValueError(f"QuoteBot: Environment Initialisation error: {key} not found/set.")
-  return int(val)
 
 # Load tokens
-BOT_TOKEN = os.getenv("QBOT_TOKEN")
-if not BOT_TOKEN:
-  raise ValueError("QuoteBot: Environment Initialisation error: bot_token not found/set.")
+BOT_TOKEN = get_env("QBOT_TOKEN")
 GUILD_IDS_PRIVATE = [
-  get_env("DEV_SERVER"),
-  get_env("GHIONCK")
+  int(get_env("DEV_SERVER")),
+  int(get_env("GHIONCK"))
 ]
 
 client = QuoteBot()
@@ -43,6 +31,7 @@ client = QuoteBot()
 @client.event
 async def on_ready():
   print(f'QuoteBot: {client.user} started!')
+  # Pushes all commands not restricted by guild to all guilds
   await client.tree.sync()
 
   # private commands
@@ -83,7 +72,6 @@ async def on_command_error(interaction: QuoteBotInteraction, error: app_commands
     report_error("on_app_command_error", error, "uncaught exception in global error handler")
     await safe_send(interaction, f"An unknown error occurred. Check logs for more details.")
   
-
 # TODO: implement a loop that checks session active timer
 
 @client.tree.command(name="start", description="Starts a dnd session")
@@ -419,16 +407,24 @@ async def timezone(
     date_str
   )
 
+@client.tree.command(name="nvnpna", description="Only use when no songs are playing, AND the queue is empty. Also make sure the bot is connected via /join. Play it to find out!")
+async def nvnpna(interaction: QuoteBotInteraction):
+  await music.run_nvnpna(interaction)
+
 async def main():
   async with client:
     # Runs the bot
     try:
-      assert BOT_TOKEN
+      if not BOT_TOKEN:
+        raise ValueError("QuoteBot: Environment Initialisation error: bot_token not found/set.")
       print("QuoteBot: Starting bot...")
       await client.start(BOT_TOKEN)
+    except ValueError as ve:
+      print(f"Error starting the bot: {ve}")
+      report_error("main", ve, "attempted to run the bot, perhaps the bot token was not found?")
     except Exception as e:
-      print(f"Error starting the bot: {e}")
-      report_error("main", e, "attempted to run the bot, perhaps the bot token was None?")
+      print(f"Unknown error starting the bot: {e}")
+      report_error("main", e, "attempted to run the bot. Something went wrong.")
 
 if __name__ == "__main__":
   try:
@@ -436,5 +432,5 @@ if __name__ == "__main__":
   except KeyboardInterrupt:
     print("QuoteBot: Shutting down...")
   except Exception as e:
-    print(f"Error shutting down: {e}")
+    print(f"Error shutting down: {e}. Are you connected to the internet?")
     report_error("main", e, "attempted to stop the bot")

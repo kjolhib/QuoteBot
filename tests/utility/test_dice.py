@@ -1,5 +1,5 @@
 import pytest
-from helpers.DiceHelpers import compute_roll
+from helpers.dice_helpers import compute_roll
 
 from exceptions.dice import invalid_faces_error
 

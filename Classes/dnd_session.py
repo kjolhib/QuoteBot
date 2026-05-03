@@ -1,7 +1,7 @@
 from discord.embeds import Embed as de
 from discord.colour import Colour as dc
 from classes.dice import Dice
-from helpers.DiceHelpers import check_die_faces
+from helpers.dice_helpers import check_die_faces
 from exceptions.dice import no_die_in_sesh_error, too_many_dice_error
 from exceptions.dice import die_alr_exists_error, invalid_faces_error
 

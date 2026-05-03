@@ -1,3 +1,4 @@
+import re
 import yt_dlp
 import asyncio
 import discord
@@ -8,8 +9,53 @@ from interaction_type import QuoteBotInteraction
 from classes.song import Song
 from exceptions.voice import user_in_stage_vc_error, user_not_in_vc_error, no_voice_error
 from exceptions.voice import after_play_error
-from .UtilityHelpers import safe_send
+from .utility_helpers import safe_send
 from classes.guild_state import GuildState
+
+_YT_URL_PATTERNS = [
+  r'(?:https?://)?youtu\.be/([a-zA-Z0-9_-]{11})', # youtu.be link
+  r'(?:https?://)?(?:www\.|m\.)?youtube\.com/watch\?.*?v=([a-zA-Z0-9_-]{11})', # https://www.youtube.com/watch
+  r'(?:https?://)?(?:www\.)?youtube\.com/shorts/([a-zA-Z0-9_-]{11})', # standard youtube shorts url
+  r'(?:https?://)?(?:www\.)?youtube\.com/embed/([a-zA-Z0-9_-]{11})' # embed links
+]
+
+def _extract_video_id(query: str) -> str | None:
+  """
+  Given a query, extract the matching pattern.
+  Args:
+    query: the string containing the user's input
+  Returns:
+    str: the matching pattern
+    None: no matching found
+  """
+  for i, pattern in enumerate(_YT_URL_PATTERNS):
+    match = re.search(pattern, query)
+    if match:
+      print(f"[EXTRACT_VIDEO_ID]: Normaliser: Matched pattern [{i}]: {pattern}")
+      print(f"[EXTRACT_VIDEO_ID]: Extracted into normalised url: {match.group(1)}")
+      return match.group(1)
+  print(f"[EXTRACT_VIDEO_ID]: Normaliser: no pattern matches for query {query}")
+  return None
+
+def normalise_yt_url(query: str) -> tuple[str, bool]:
+  """
+  Returns a normalised youtube url.
+
+  If the query has any youtube variant, returns the standard "watch?v=`url`".
+
+  If query is a plain query search (ie. plain english), returns it unchanged.
+
+  Args:
+    query: the string containing user's input, fed through the pattern matcher
+  Returns:
+    Format:
+      `(norm_url, is_url)`
+  """
+  video_id = _extract_video_id(query)
+  if video_id:
+    return (f"https://www.youtube.com/watch?v={video_id}", True)
+  return (query, False)
+
 
 async def play_next_song(interaction: QuoteBotInteraction, state: GuildState):
   """
@@ -65,6 +111,11 @@ async def play_next_song(interaction: QuoteBotInteraction, state: GuildState):
   # notify channels asynchornously
   asyncio.create_task(safe_send(interaction, now_msg))
 
+  # Update the view.
+  if state.active_view and state.active_view.message:
+    await state.active_view.edit_view(embed=state.q_to_embed(), force_playing=True)
+    # await state.active_view.message.edit(embed=state.q_to_embed(), view=state.active_view)
+
 async def ensure_vc(interaction: QuoteBotInteraction, user: discord.Member, play_cmd: bool=False) -> discord.VoiceClient | int:
   """
   Ensures user is in VC, bot joins the vc if they are.
@@ -89,18 +140,34 @@ async def ensure_vc(interaction: QuoteBotInteraction, user: discord.Member, play
 async def search_first_track(query: str, ydl_options: dict[str, Any]) -> Song | None:
   """
   Searches the query and returns the first track's audio url and title.
+  Args:
+    query: string containing the user's inputs
+    ydl_options: hard coded options for ytdlp
   Returns:
-    (audio_url, title) if found
-    None if not found or error
+    (audio_url, title): if found
+    None: if not found or error
   """
-  serach_query = "ytsearch1: " + query
-  results = await _search_ytdlp_async(serach_query, ydl_options)
-  tracks = results.get("entries", [])
-  if not tracks:
-    return None
-  
-  first = tracks[0]
-  return Song(title=first.get("title", "Untitled"), url=first["url"], song_length=first.get("duration", 0))
+  # Attempt to normalise a youtube url. Returns either a standard yt url if is url, or a string if not.
+  normalised, is_url = normalise_yt_url(query)
+  if is_url:
+    # Direct url in the form https://www.youtube.com/watchv=<url>
+    result = await _search_ytdlp_async(normalised, ydl_options)
+    if not result or "url" not in result:
+      return None
+    return Song(
+      title=result.get("title", "Untitled"), # type: ignore
+      url=result["url"], # type: ignore
+      song_length=result.get("duration", 0) # type: ignore
+    )
+  else:
+    # Plain english search, wrap it with ytsearch1 and grab the first entry
+    results = await _search_ytdlp_async(f"ytsearch1: {normalised}", ydl_options)
+    tracks = results.get("entries", [])
+    if not tracks:
+      return None
+    
+    first = tracks[0]
+    return Song(title=first.get("title", "Untitled"), url=first["url"], song_length=first.get("duration", 0))
 
 async def _bot_join_vc(interaction: QuoteBotInteraction, user_channel: discord.VoiceChannel, user_name: str, play_cmd: bool):
   """

@@ -2,7 +2,7 @@ import discord
 
 from classes.guild_state import GuildState
 from interaction_type import QuoteBotInteraction
-from helpers.UtilityHelpers import safe_send, safe_edit
+from helpers.utility_helpers import safe_send, safe_edit
 from exceptions.voice import no_voice_error, not_playing_error
 
 class MusicPlayer(discord.ui.View):
@@ -22,7 +22,7 @@ class MusicPlayer(discord.ui.View):
     self.message: discord.Message | None = None
     self._update_buttons()
 
-  def _update_buttons(self):
+  def _update_buttons(self, force_playing: bool = False):
     """
     Updates the buttons depending on whatever is played.
 
@@ -30,9 +30,12 @@ class MusicPlayer(discord.ui.View):
     """
     vc = self.state.voice_client
 
-    # if vc is none, require already playing and in vc
-    is_playing = vc and vc.is_playing()
-    is_paused = vc and vc.is_paused()
+    # if vc is none, require already playing and in vc.
+    # Force playing is to make sure that whenever we skip, or whenever update_buttons is dependent on play_next_song, 
+    # the buttons will not be disabled in the time it takes for the next song to load and play.
+    # This is here because of the fact that `vc.play()` is non-blocking.`
+    is_playing = force_playing or (vc and vc.is_playing())
+    is_paused = not force_playing and (vc and vc.is_paused())
 
     self.pause_resume.label = "▶" if is_paused else "⏸"
     # green when paused, grey when playing
@@ -70,6 +73,8 @@ class MusicPlayer(discord.ui.View):
     
     # trigger next song in queue
     vc.stop()
+    self._update_buttons()
+
     await safe_send(interaction, "Skipping song...", ephemeral=True)
 
   @discord.ui.button(label="🗑️", style=discord.ButtonStyle.red, row=0)
@@ -99,7 +104,7 @@ class MusicPlayer(discord.ui.View):
     """
     await self.expire_cleanup("*Controls have expired after 60 seconds.")
 
-  async def expire_cleanup(self, reason: str):
+  async def expire_cleanup(self, reason: str) -> None:
     """
     Disables all buttons when:
       - 60 seconds have passed
@@ -137,3 +142,23 @@ class MusicPlayer(discord.ui.View):
       embed.set_footer(text=reason)
       await self.message.edit(embed=embed, view=self)
       
+  async def edit_view(self, embed: discord.Embed, force_playing: bool = False):
+    """
+    Edits the current view.
+
+    Force playing is to prevent the `_update_buttons` from disabling the pause and resume buttons.
+    
+    This is only `True` in the case of `play_next_song`, which guarantees that if this function is called, then there will be a next song to play.
+
+    Ie. `repeat` = `True`, or `queue` is not empty
+
+    Args:
+      embed: the newly updated embed to edit this view into
+      force_playing: whether or not this edit is called from a command that guarantees a song will play next. If guranteed (ie. /skip), it will be `True`, and `_update_buttons` will not disable the pause/resume buttons. 
+    """
+    # update the buttons. This is to prevent the play/skip buttons from being disabled after the skip button was called.
+    # Fprce playing is to prevent non-blocking nature of vc.play() to make the player "think" that there is no song playing,
+    # when in reality, it's in between stopping the current song and playing the next one.
+    self._update_buttons(force_playing=force_playing)
+    if self.message:
+      await self.message.edit(embed=embed, view=self)

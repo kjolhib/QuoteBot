@@ -3,9 +3,9 @@ from typing import Optional
 
 from interaction_type import QuoteBotInteraction
 
-from helpers.TimezoneHelpers import format_AEST
-from helpers.UtilityHelpers import safe_send
-from helpers.QuoteHelpers import *
+from helpers.timezone_helpers import format_AEST
+from helpers.utility_helpers import safe_send
+from helpers.quote_helpers import *
 
 async def run_repeat(interaction: QuoteBotInteraction, string: str):
   """

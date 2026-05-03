@@ -3,9 +3,9 @@ from typing import Optional
 
 from interaction_type import QuoteBotInteraction
 
-from helpers.TimezoneHelpers import format_AEST
-from helpers.UtilityHelpers import safe_send
-from helpers.DnDHelpers import *
+from helpers.timezone_helpers import format_AEST
+from helpers.utility_helpers import safe_send
+from helpers.dnd_helpers import *
 from classes import weather_data as wd
 
 async def run_start(interaction: QuoteBotInteraction):

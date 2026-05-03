@@ -11,7 +11,7 @@ from exceptions.voice import clear_queue_error
 
 # avoiding circular import
 if TYPE_CHECKING:
-  from .music_interaction import MusicPlayer
+  from .music_player import MusicPlayer
 
 class GuildState:
   """
