@@ -41,6 +41,9 @@ async def run_play(interaction: QuoteBotInteraction, query: str):
 
   # get or create state
   state = interaction.client.get_guild_state(str(interaction.guild_id))
+  if isinstance(interaction.channel, discord.abc.Messageable):
+    # check if the bot command was called originally in a messageable channel, so the bot can therefore always refer to the original msg in play_next_song
+    state.text_channel = interaction.channel
 
   # ensure user is in vc, if not, joins
   vc = await _ensure_voice(interaction, play_cmd=True) # type: ignore
@@ -77,7 +80,7 @@ async def run_play(interaction: QuoteBotInteraction, query: str):
       await state.active_view.edit_view(embed=state.q_to_embed())
   else:
     # otherwise, play the song now.
-    await play_next_song(interaction, state)
+    await play_next_song(state)
   
 @bot_require_voice_client
 async def run_skip(interaction: QuoteBotInteraction) -> None:

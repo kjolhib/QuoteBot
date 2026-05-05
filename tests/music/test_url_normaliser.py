@@ -1,6 +1,6 @@
 import pytest
 
-from helpers.music_helpers import normalise_yt_url
+from helpers.music_helpers import normalise_yt_url # type: ignore
 
 """
 Testing the youtube link normaliser found in music_helpers.py.

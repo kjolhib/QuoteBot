@@ -35,6 +35,7 @@ class GuildState:
     self.current: Song | None = None # current song, containing url, title
     self.repeat: bool = False # repeats current song
     self.active_view: Optional["MusicPlayer"] = None # the current view maintained by /queue command
+    self.text_channel: discord.abc.Messageable | None = None # store the channel to send a message. distinct from safe_send since this applies to outside interactions, e.g. /repeat
 
   def start(self, time: float, dice: list[Dice] = []):
     """
@@ -112,3 +113,21 @@ class GuildState:
     if self.active_view:
       await self.active_view.expire_cleanup(reason)
       self.active_view = None
+
+  async def send(self, message: str):
+    """
+    Sends a bot-initated message.
+
+    This message is different to safe_send as it has no inherent `interaction` to reply to.
+
+    Applicable to:
+      `/play` used with `/repeat`. `play_next_song` requires this, as `/repeat` enabled would send a 
+      message to the channel the `/play` command was invoked.
+
+    Args:
+      message: the message the bot sends to the channel
+    """
+    if self.text_channel:
+      await self.text_channel.send(message)
+    else:
+      print(f"[GUILD_STATE]: send: cannot send message because text channel was None. Shouldn't be called.")

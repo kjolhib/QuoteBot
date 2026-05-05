@@ -19,24 +19,6 @@ _YT_URL_PATTERNS = [
   r'(?:https?://)?(?:www\.)?youtube\.com/embed/([a-zA-Z0-9_-]{11})' # embed links
 ]
 
-def _extract_video_id(query: str) -> str | None:
-  """
-  Given a query, extract the matching pattern.
-  Args:
-    query: the string containing the user's input
-  Returns:
-    str: the matching pattern
-    None: no matching found
-  """
-  for i, pattern in enumerate(_YT_URL_PATTERNS):
-    match = re.search(pattern, query)
-    if match:
-      print(f"[EXTRACT_VIDEO_ID]: Normaliser: Matched pattern [{i}]: {pattern}")
-      print(f"[EXTRACT_VIDEO_ID]: Extracted into normalised url: {match.group(1)}")
-      return match.group(1)
-  print(f"[EXTRACT_VIDEO_ID]: Normaliser: no pattern matches for query {query}")
-  return None
-
 def normalise_yt_url(query: str) -> tuple[str, bool]:
   """
   Returns a normalised youtube url.
@@ -57,7 +39,7 @@ def normalise_yt_url(query: str) -> tuple[str, bool]:
   return (query, False)
 
 
-async def play_next_song(interaction: QuoteBotInteraction, state: GuildState):
+async def play_next_song(state: GuildState):
   """
   Plays the next song in queue.
  
@@ -85,9 +67,10 @@ async def play_next_song(interaction: QuoteBotInteraction, state: GuildState):
     # schedule next song
     if state.voice_client:
       asyncio.run_coroutine_threadsafe(
-        play_next_song(interaction, state), state.voice_client.loop
+        play_next_song(state), state.voice_client.loop
       )
   
+  # differentiate between repeating or not
   if state.repeat and state.current:
     # Loop current song
     song = state.current
@@ -109,12 +92,12 @@ async def play_next_song(interaction: QuoteBotInteraction, state: GuildState):
   state.voice_client.play(source, after=after_play)
   
   # notify channels asynchornously
-  asyncio.create_task(safe_send(interaction, now_msg))
+  if state.text_channel:
+    await state.send(now_msg)
 
   # Update the view.
   if state.active_view and state.active_view.message:
     await state.active_view.edit_view(embed=state.q_to_embed(), force_playing=True)
-    # await state.active_view.message.edit(embed=state.q_to_embed(), view=state.active_view)
 
 async def ensure_vc(interaction: QuoteBotInteraction, user: discord.Member, play_cmd: bool=False) -> discord.VoiceClient | int:
   """
@@ -214,3 +197,20 @@ async def _search_ytdlp_async(query: str, ydl_opts: dict[str, Any]):
   loop = asyncio.get_running_loop()
   return await loop.run_in_executor(None, lambda: _extract(query, ydl_opts))
 
+def _extract_video_id(query: str) -> str | None:
+  """
+  Given a query, extract the matching pattern.
+  Args:
+    query: the string containing the user's input
+  Returns:
+    str: the matching pattern
+    None: no matching found
+  """
+  for i, pattern in enumerate(_YT_URL_PATTERNS):
+    match = re.search(pattern, query)
+    if match:
+      print(f"[EXTRACT_VIDEO_ID]: Normaliser: Matched pattern [{i}]: {pattern}")
+      print(f"[EXTRACT_VIDEO_ID]: Extracted into normalised url: {match.group(1)}")
+      return match.group(1)
+  print(f"[EXTRACT_VIDEO_ID]: Normaliser: no pattern matches for query {query}")
+  return None
