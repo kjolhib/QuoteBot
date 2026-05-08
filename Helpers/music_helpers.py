@@ -71,7 +71,7 @@ async def play_next_song(state: GuildState):
       )
   
   # differentiate between repeating or not
-  if state.repeat and state.current:
+  if state.loop and state.current:
     # Loop current song
     song = state.current
     now_msg = f"Now repeating: **{song.title}** [{song.format_duration}]"

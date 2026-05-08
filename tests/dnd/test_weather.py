@@ -33,26 +33,12 @@ def cleanup():
   os.remove(TMP_PATH)
 
 """
-increment_val
-"""
-def test_inc__valid(weather: wd.WeatherData):
-  weather.increment_val("a")
-  assert weather.data["a"] == 1
-
-def test_inc__missing_invalid(weather: wd.WeatherData):
-  with pytest.raises(weather_missing_error.WeatherMissingError):
-    weather.increment_val("z")
-
-def test_inc__missing_empty_invalid(empty_weather: wd.WeatherData):
-  with pytest.raises(weather_missing_error.WeatherMissingError):
-    empty_weather.increment_val("a")
-
-"""
 select_weighted_random
 """
-def test_random__valid(weather: wd.WeatherData):
-  chosen = weather.select_weighted_random()
-  weather.increment_val(chosen)
+def test_random__valid_incs(weather: wd.WeatherData):
+  _ = weather.select_weighted_random(inc=False)
+  assert 0 in weather.data.values()
+  _ = weather.select_weighted_random()
   assert 1 in weather.data.values()
 
 def test_random__empty_invalid(empty_weather: wd.WeatherData):
@@ -69,8 +55,7 @@ def test_load_weather__valid():
 def test_load_weather__valid_already_exists(weather: wd.WeatherData):
   tmp_ = os.path.join(os.path.dirname(__file__), "tmp_weather_probabilities2.json")
   new_data = wd.load_weather(fp=tmp_)
-  chosen = new_data.select_weighted_random() # select something just so it will be different from init data
-  new_data.increment_val(chosen)
+  _ = new_data.select_weighted_random() # select something just so it will be different from init data
   assert 1 in new_data.data.values()
   wd.save_weather(new_data, fp=tmp_)
   
@@ -86,7 +71,6 @@ save_weather
 def test_save_weather__valid(weather: wd.WeatherData):
   old = wd.load_weather(TMP_PATH).data
   chosen = weather.select_weighted_random()
-  weather.increment_val(chosen)
   assert chosen in weather.data.keys() # we chose some random key
   assert weather.data[chosen] == 1 # some chosen key has value 1
   wd.save_weather(weather, fp=TMP_PATH) # save the newly updated json
@@ -99,8 +83,7 @@ reset_json
 """
 def test_reset_weather__valid(weather: wd.WeatherData):
   # sim a roll
-  chosen = weather.select_weighted_random()
-  weather.increment_val(chosen)
+  _ = weather.select_weighted_random()
   wd.save_weather(weather, fp=TMP_PATH)
   old = wd.load_weather(fp=TMP_PATH)
   
@@ -115,8 +98,7 @@ reset_data
 """
 def test_reset_data__valid(weather: wd.WeatherData):
   # get old data before resetting data
-  chosen = weather.select_weighted_random()
-  weather.increment_val(chosen)
+  _ = weather.select_weighted_random()
   old_data = weather.data
 
   weather.reset_data()
@@ -173,8 +155,7 @@ def test_modify_data__missing_invalid(empty_weather: wd.WeatherData):
 statistics
 """
 def test_statistics__valid(weather: wd.WeatherData):
-  chosen = weather.select_weighted_random()
-  weather.increment_val(chosen)
+  _ = weather.select_weighted_random()
   s = weather.statistics()
   assert s.total_rolls == 1
   assert s.percentages

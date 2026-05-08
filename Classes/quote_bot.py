@@ -4,6 +4,15 @@ from discord import app_commands
 from classes.guild_state import GuildState
 
 class QuoteBot(discord.Client):
+  """
+  Class that contains everything the bot requires.
+
+  The top hierarchy, and manages all functionality and operations of the bot.
+
+  Attributes:
+    `tree`: the command tree.
+    `_guild_states`: dictionary containing the `GuildState` class to their corresponding guild name.
+  """
   def __init__(self):
     intents = discord.Intents.default()
     intents.message_content = True
@@ -18,7 +27,7 @@ class QuoteBot(discord.Client):
     Args:
       guild_id: the id of the guild.
     Returns:
-      GuildState: instance of the current guild
+      GuildState: instance of the current guild.
     """
     if guild_id not in self._guild_states:
       self._guild_states[guild_id] = GuildState()

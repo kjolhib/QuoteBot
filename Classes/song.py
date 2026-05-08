@@ -9,9 +9,11 @@ class Song:
   @property
   def format_duration(self) -> str:
     """
-    Formats the duration as MM:SS, or if too long, HH:MM:SS
-    """
+    Formats the duration as MM:SS, or if too long, HH:MM:SS.
 
+    Returns:
+      string: formatted in HH:MM:SS, or MM:SS if no hours.
+    """
     minutes, seconds = divmod(self.song_length, 60)
     hours, minutes = divmod(minutes, 60)
     if hours:

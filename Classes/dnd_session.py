@@ -1,5 +1,6 @@
 from discord.embeds import Embed as de
 from discord.colour import Colour as dc
+
 from classes.dice import Dice
 from helpers.dice_helpers import check_die_faces
 from exceptions.dice import no_die_in_sesh_error, too_many_dice_error
@@ -35,15 +36,19 @@ class DnDSession:
   def get_die(self, scenario: str) -> Dice | None:
     """
     Given a scenario, verifies that a die with the same scenario exists.
+    Args:
+      scenario: the name of the die to return.
     Returns:
-      The die if it exists, None otherwise.
+      - dice: the die if it exists. `None` otherwise.
     """
     return next((d for d in self.current_session_dice if d.scenario == scenario), None)
 
   def remove_die(self, scenario: str) -> None:
     """
     Removes the specified die from the session.
-
+    Args:
+      scenario: the name of the die to remove.
+    
     Raises:
       NoDieInSeshError: if no die with specified scenario exists.
     """
@@ -57,9 +62,9 @@ class DnDSession:
     """
     Lists the dice in the current session.
     Returns:
-      String containing the dice:
+      Embed containing the dice:
       Format:
-        Dice Created:
+        Dice:
         {scenario}: D({faces})
         ...
 
@@ -94,6 +99,8 @@ class DnDSession:
   def _to_embed(self) -> de:
     """
     Turns `current_session_dice` into an embed object for discord to send.
+    Returns:
+      embed: an embed object containing the list `current_session_die`.
     """
     embed = de(title="**__Dice Created__:**", colour=dc.blue())
     for die in self.current_session_dice:

@@ -5,7 +5,7 @@ from interaction_type import QuoteBotInteraction
 from classes.music_player import MusicPlayer
 from helpers.music_helpers import search_first_track, play_next_song, ensure_vc
 from helpers.utility_helpers import bot_require_voice_client, safe_send
-from exceptions.voice import join_vc_error
+from exceptions.voice import join_vc_error, not_playing_error
 
 async def run_join(interaction: QuoteBotInteraction):
   """
@@ -88,11 +88,13 @@ async def run_skip(interaction: QuoteBotInteraction) -> None:
   Skips the currently playing song.
   
   Requires the bot to be in a VC.
+
+  Raises:
+    NotPlayingError: no songs are playing to skip.
   """
   state = interaction.client.get_guild_state(str(interaction.guild_id))
   if not state or not state.voice_client or not state.voice_client.is_playing():
-    await safe_send(interaction, "No songs playing.")
-    return
+    raise not_playing_error.NotPlayingError("No songs playing.")
   
   state.voice_client.stop() # triggers playnextsong
   await safe_send(interaction, "Skipping current song...")
@@ -159,19 +161,19 @@ async def run_clear_queue(interaction: QuoteBotInteraction) -> None:
   await safe_send(interaction, "Queue cleared.")
 
 @bot_require_voice_client
-async def run_repeat(interaction: QuoteBotInteraction):
+async def run_loop(interaction: QuoteBotInteraction):
   """
   Loops the current song if not looping, if looping already, stop looping.
   
-  Sets the guild state's `repeat` field to true.
+  Sets the guild state's `loop` field to true.
   """
   state = interaction.client.get_guild_state(str(interaction.guild_id))
-  if not state or not state.current:
-    return await safe_send(interaction, "No songs are playing.")
+  if not state.current:
+    raise not_playing_error.NotPlayingError("No songs are playing.")
   
   # flip flop: loop <-> no loop
-  state.repeat = not state.repeat
-  msg = f"Looping current song: **{state.current.title}** [{state.current.format_duration}]" if state.repeat else "Will now stop looping."
+  state.loop = not state.loop
+  msg = f"Looping current song: **{state.current.title}** [{state.current.format_duration}]" if state.loop else "Will now stop looping."
   await safe_send(interaction, msg)
 
 @bot_require_voice_client

@@ -20,7 +20,7 @@ def test_empty_initialisation(guild: gs.GuildState):
   assert not guild.current
   assert not guild.dnd_session
   assert not guild.queue
-  assert not guild.repeat
+  assert not guild.loop
   assert not guild.voice_client
 
 """

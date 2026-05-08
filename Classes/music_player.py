@@ -1,6 +1,6 @@
 import discord
 
-from classes.guild_state import GuildState
+from classes.protocols import MusicStateProtocol
 from interaction_type import QuoteBotInteraction
 from helpers.utility_helpers import safe_send, safe_edit
 from exceptions.voice import no_voice_error, not_playing_error
@@ -15,14 +15,19 @@ class MusicPlayer(discord.ui.View):
     - Skip
     - Clear
     - Repeat
+
+  Attributes:
+    `state`: a protocol that exposes
+    `message`: the view that `/queue` creates. Maintained and continually updates the original view message, if not expired.
+    `_update_buttons()`: updates and syncs the buttons whenever a buttone is pressed.
   """
-  def __init__(self, state: GuildState):
+  def __init__(self, state: MusicStateProtocol):
     super().__init__(timeout=60)
-    self.state: GuildState = state
+    self.state: MusicStateProtocol = state
     self.message: discord.Message | None = None
     self._update_buttons()
 
-  def _update_buttons(self, force_playing: bool = False):
+  def _update_buttons(self, force_playing: bool = False) -> None:
     """
     Updates the buttons depending on whatever is played.
 
@@ -42,12 +47,12 @@ class MusicPlayer(discord.ui.View):
     self.pause_resume.style = (discord.ButtonStyle.green if is_paused else discord.ButtonStyle.primary)
     self.pause_resume.disabled = not (is_playing or is_paused)
     self.skip.disabled = not is_playing
-    self.repeat.style = (discord.ButtonStyle.green if self.state.repeat else discord.ButtonStyle.primary)
+    self.loop.style = (discord.ButtonStyle.green if self.state.loop else discord.ButtonStyle.primary)
 
   @discord.ui.button(label="⏯", style=discord.ButtonStyle.primary, row=0)
-  async def pause_resume(self, interaction: QuoteBotInteraction, _: discord.ui.Button["MusicPlayer"]):
+  async def pause_resume(self, interaction: QuoteBotInteraction, _: discord.ui.Button["MusicPlayer"]) -> None:
     """
-    Creates the pause/resume buttons.
+    Pause/Resume buttons that pauses or skips the current song. Same functionality as their respective commands.
     
     They flip-flop between the 2, if paused, it shows resume as green, and if playing, it shows pause as red.
     """
@@ -63,9 +68,12 @@ class MusicPlayer(discord.ui.View):
     await safe_edit(interaction, embed=self.state.q_to_embed(), view=self)
 
   @discord.ui.button(label="⏭", style=discord.ButtonStyle.primary, row=0)
-  async def skip(self, interaction: QuoteBotInteraction, _: discord.ui.Button["MusicPlayer"]):
+  async def skip(self, interaction: QuoteBotInteraction, _: discord.ui.Button["MusicPlayer"]) -> None:
     """
-    Creates the skip button.
+    Skip button that skips the song. Same functionality as `/skip` command.
+
+    Raises:
+      NotPlayingError: the bot is not playing anything, so there's nothing to skip.
     """
     vc = self.state.voice_client
     if not vc or not vc.is_playing():
@@ -78,29 +86,32 @@ class MusicPlayer(discord.ui.View):
     await safe_send(interaction, "Skipping song...", ephemeral=True)
 
   @discord.ui.button(label="🗑️", style=discord.ButtonStyle.red, row=0)
-  async def clear(self, interaction: QuoteBotInteraction, _: discord.ui.Button["MusicPlayer"]):
+  async def clear(self, interaction: QuoteBotInteraction, _: discord.ui.Button["MusicPlayer"]) -> None:
     """
-    Creates clear button.
+    Button that clears the queue. Same functionality as `/clear_queue` command.
     """
     await self.state.clear_queue()
     self._update_buttons()
     await safe_edit(interaction, embed=self.state.q_to_embed(), view=self)
 
   @discord.ui.button(label="🔁︎", style=discord.ButtonStyle.blurple, row=0)
-  async def repeat(self, interaction: QuoteBotInteraction, _: discord.ui.Button["MusicPlayer"]):
+  async def loop(self, interaction: QuoteBotInteraction, _: discord.ui.Button["MusicPlayer"]) -> None:
     """
-    Creates repeat button.
+    A button that sets repeat to `True`. Same functionality as `/loop` command.
+
+    Raises:
+      NotPlayingError: there are no songs playing or none in t
     """
     # Check something is playing
     if not self.state.current:
-      raise not_playing_error.NotPlayingError("Nothing playing to repeat.")
-    self.state.repeat = not self.state.repeat
+      raise not_playing_error.NotPlayingError("Nothing playing to loop.")
+    self.state.loop = not self.state.loop
     self._update_buttons()
     await safe_edit(interaction, embed=self.state.q_to_embed(), view=self)
   
-  async def on_timeout(self):
+  async def on_timeout(self) -> None:
     """
-    Disables all buttons when the view expires after 60 seconds
+    Disables all buttons when the view expires after 60 seconds.
     """
     await self.expire_cleanup("*Controls have expired after 60 seconds.")
 
@@ -110,6 +121,7 @@ class MusicPlayer(discord.ui.View):
       - 60 seconds have passed
       - no songs are playing
     
+    Edits all active views to a specified `reason` for cleanup.
     Args:
       reason: the reason as to why this cleanup was called. Currently only if 60 seconds timeout, or queue is empty.
     """
@@ -142,7 +154,7 @@ class MusicPlayer(discord.ui.View):
       embed.set_footer(text=reason)
       await self.message.edit(embed=embed, view=self)
       
-  async def edit_view(self, embed: discord.Embed, force_playing: bool = False):
+  async def edit_view(self, embed: discord.Embed, force_playing: bool = False) -> None:
     """
     Edits the current view.
 

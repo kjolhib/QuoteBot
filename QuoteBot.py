@@ -313,14 +313,14 @@ async def resume(interaction: QuoteBotInteraction):
   """
   await music.run_resume(interaction)
 
-@client.tree.command(name="repeat", description="Repeatedly plays the current song")
+@client.tree.command(name="loop", description="Repeatedly plays the current song")
 @app_commands.guilds(*[discord.Object(id=id) for id in GUILD_IDS_PRIVATE])
 @with_timeout(timeout=2)
-async def repeat(interaction: QuoteBotInteraction):
+async def loop(interaction: QuoteBotInteraction):
   """
   Repeats the currently playing song.
   """
-  await music.run_repeat(interaction)
+  await music.run_loop(interaction)
 
 @client.tree.command(name="random_msg", description="Get a random message from a given user's last 200 messages by default")
 @app_commands.describe(user="The user to find a random message from")

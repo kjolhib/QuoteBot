@@ -3,22 +3,25 @@ import random
 class Dice:
   """
   A scenario dice.
-  Stored by DnDSession class.
-  Has it's name (scenario), number of faces, and a list of past rolls.
-  Has its own weighted simulated rolls.
+  
+  Stored by `DnDSession` class.
+
+  Attributes:
+    `scenario`: the string describing this die. It's unique identifier.
+    `faces`: the number of faces on this die.
+    `past_rolls`: a list containing the past rolls of this die.
   """
   def __init__(self, scenario: str, faces: int):
     self.scenario : str = scenario
     self.faces : int = faces
     self.past_rolls: list[int] = []
 
-  def simulate_weighted_rolls(self):
+  def simulate_weighted_rolls(self) -> int:
     """
     Simulates weighted rolls on past rolls list.
 
     Returns:
-      Int:
-        The weighted result.
+      result: a randomly selected result.
     """
     # All possible faces
     possible = list(range(1, self.faces + 1))

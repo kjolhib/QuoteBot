@@ -154,7 +154,6 @@ async def run_generate_weather(interaction: QuoteBotInteraction):
 
   # choose.
   chosen = data.select_weighted_random()
-  data.increment_val(chosen)
   wd.save_weather(data)
   await safe_send(interaction, f"The weather you have rolled is **{chosen}**! is that good?")
 

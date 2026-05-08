@@ -23,7 +23,12 @@ FILE_PATH = os.path.join(os.path.dirname(__file__), "../data/weather_probabiliti
 @dataclass
 class WeatherStats():
   """
-  Custom class for typing statistics.
+  Custom class for weather statistics.
+  Attributes:
+    `total_rolls`: sum of all counts in the weather dictionary.
+    `percentages`: a dictionary containing the percentages of each weather being rolled.
+    `most_common`: the most common weather rolled.
+    `least_common`: the least common weather rolled.
   """
   total_rolls: int
   percentages: dict[str, float]
@@ -55,16 +60,24 @@ class WeatherData():
   Contains data in JSON format: dict[str, int].
 
   Has a weighted random generator that generates a random weather, and statistics related to it.
+
+  Not tied to `GuildState` or the guild.
+
+  Attributes:
+    `data`: the weather data represented as a dictionary of strings to integers (scenario - count).
+    `_fp`: file path to the weather `.json` file.
   """
   def __init__(self, data: dict[str, int], fp: str=FILE_PATH):
     self.data: dict[str, int] = data
     self._fp = fp
 
-  def select_weighted_random(self) -> str:
+  def select_weighted_random(self, inc: bool = True) -> str:
     """
     Pseudo-weighted random generator.
 
     The more often the weather is chosen before (higher int value), the less often it gets chosen.
+    Args:
+      inc: a flag to determine whether to increment the weather's `count`. Defaulted to `True`. If `False`, does not increment the counter.
     Returns:
       string: the weather that got chosen
     """
@@ -73,7 +86,10 @@ class WeatherData():
     total = sum(self.data.values())
     if total == 0:
       # empty
-      return random.choice(list(self.data.keys()))
+      choice = random.choice(list(self.data.keys()))
+      if inc:
+        self.data[choice] += 1
+      return choice
     
     weights: list[float] = []
 
@@ -81,19 +97,24 @@ class WeatherData():
     # More counts = less probability of being chosen.
     for _, count in self.data.items():
       weights.append(1/(count+1))
-    return random.choices(list(self.data.keys()), weights=weights)[0]
+
+    choice = random.choices(list(self.data.keys()), weights=weights)[0]
+    if inc:
+      self.data[choice] += 1
+    return choice
 
   def statistics(self) -> WeatherStats:
     """
     Gets statistics related to the rolls.
     
     Returns:
-      WeatherStats class: Format: 
+      WeatherStats class:
+      Format: 
       (
-        Total rolls
-        Percentages
-        Most common weather
-        Least common weather
+        total_rolls
+        percentages
+        most_common_weather
+        least_common_weather
       )
     """
     total = sum(self.data.values())
@@ -110,17 +131,6 @@ class WeatherData():
       most_common=max(self.data, key=lambda k: self.data[k]),
       least_common=min(self.data, key=lambda k: self.data[k])
     )
-
-  def increment_val(self, w: str) -> None:
-    """
-    Increments the int value of a weather.
-
-    Raises:
-      WeatherMissingError: weather is not found
-    """
-    if w not in self.data:
-      raise weather_missing_error.WeatherMissingError(f"This should not have happened. A weather that doesn't exist in the dictionary was chosen.")
-    self.data[w] += 1
 
   def add_new_weather(self, w: str) -> None:
     """
@@ -159,12 +169,15 @@ class WeatherData():
     Modifies the specified weather's count.
 
     Args:
-      w: the weather to modify
-      new_c: the new count to modify the weather to. `w.count = new_c`
+      w: the weather to modify.
+      new_c: the new count to modify the weather to. `w.count = new_c`.
+
+    Returns:
+      old_counter: the integer value of the counter of the specified weather before modification.
 
     Raises:
-      WeatherMissingError: attempting to modify a weather that doesn't exist
-      NegativeCountError: attempting to modify a weather's count to negative
+      WeatherMissingError: attempting to modify a weather that doesn't exist.
+      NegativeCountError: attempting to modify a weather's count to negative.
     """
     if w not in self.data:
       raise weather_missing_error.WeatherMissingError(f"You cannot modify weather {w} because it does not exist. Create it first with /add_weather, you forehead.")
@@ -180,7 +193,7 @@ class WeatherData():
     
     Mostly here for debugging and testing.
 
-    In reality, the discord api will interact directly with the file, with load/save_weather.
+    In reality, the discord commands will interact directly with the file, with load/save_weather.
     """
     self.data = get_init_data().data
 
@@ -204,6 +217,9 @@ class WeatherData():
       embed.add_field(name=weather, value=str(count), inline=False)
     return embed
 
+"""
+Helpers to operate with the file directly.
+"""
 def reset_json(fp: str=FILE_PATH) -> None:
   """
   Resets weather_probabilities.json to INITDATA.
@@ -229,6 +245,7 @@ def get_init_data() -> WeatherData:
 def load_weather(fp: str=FILE_PATH) -> WeatherData:
   """
   Loads the weather JSON data in hash-map (dict) form, weather-number_rolled.
+  
   If no file exists, re-creates it with initial data.
   
   Args:
@@ -243,12 +260,12 @@ def load_weather(fp: str=FILE_PATH) -> WeatherData:
   with open(fp, "r") as f:
     return WeatherData(json.load(f))
 
-def save_weather(wd: WeatherData, fp: str=FILE_PATH):
+def save_weather(wd: WeatherData, fp: str=FILE_PATH) -> None:
   """
   Saves the weather data into a file, if not specified, default to data/weather_probabilities.json.
   Args:
     wd: the WeatherData object to be saved
-    fp: optional. path to the .json file
+    fp: optional. path to the .json file. Defaulted to the default place.
   """
   with open(fp, "w") as f:
     json.dump(wd.data, f, indent=4)
