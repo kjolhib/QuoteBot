@@ -407,9 +407,9 @@ async def timezone(
     date_str
   )
 
-@client.tree.command(name="nvnpna", description="Only use when no songs are playing, AND the queue is empty. Also make sure the bot is connected via /join. Play it to find out!")
-async def nvnpna(interaction: QuoteBotInteraction):
-  await music.run_nvnpna(interaction)
+# @client.tree.command(name="nvnpna", description="Only use when no songs are playing, AND the queue is empty. Also make sure the bot is connected via /join. Play it to find out!")
+# async def nvnpna(interaction: QuoteBotInteraction):
+#   await music.run_nvnpna(interaction)
 
 async def main():
   async with client:
