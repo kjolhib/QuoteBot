@@ -63,7 +63,7 @@ def _remove(entries: list, name: str) -> bool:
       return True
   return False
 
-def apply_reaction(data: dict, user_id: int, display_name: str, emoji: str) -> bool:
+def apply_reaction(data: dict, display_name: str, emoji: str) -> bool:
   """
   Mutates data. 
   Returns:

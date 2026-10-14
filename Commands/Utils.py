@@ -87,7 +87,7 @@ async def process_secret_santa_reaction(client, payload: discord.RawReactionActi
     if year is None:
       return
     data = load_santa_file(year)
-    changed = apply_reaction(data, payload.user_id, payload.member.display_name, emoji)
+    changed = apply_reaction(data, payload.member.display_name, emoji)
     if changed:
       save_santa_file(year, data)
 
