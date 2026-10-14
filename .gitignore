@@ -21,3 +21,4 @@ __pycache__
 
 # weather probabilities
 /data/weather_probabilities.json
+/data/secret_santa/*.json
