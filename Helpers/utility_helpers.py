@@ -1,3 +1,4 @@
+import datetime
 import os
 import asyncio
 import discord
@@ -147,3 +148,11 @@ def get_env(key: str) -> str:
   if val is None:
     raise ValueError(f"QuoteBot: Environment Initialisation error: {key} not found/set.")
   return val
+
+def current_year() -> int:
+  """
+  Returns the current year as an integer.
+  """
+  return datetime.datetime.now().year
+
+

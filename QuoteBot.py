@@ -407,9 +407,19 @@ async def timezone(
     date_str
   )
 
-# @client.tree.command(name="nvnpna", description="Only use when no songs are playing, AND the queue is empty. Also make sure the bot is connected via /join. Play it to find out!")
-# async def nvnpna(interaction: QuoteBotInteraction):
-#   await music.run_nvnpna(interaction)
+@client.event
+async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
+  await utils.process_secret_santa_reaction(client, payload)
+
+@client.tree.command(name="secret_santa", description="Get information about a year's secret santa")
+@app_commands.describe(year="The year you want to get information about. Defaults to the current year.")
+@app_commands.guilds(*[discord.Object(id=id) for id in GUILD_IDS_PRIVATE])
+@with_timeout(timeout=2)
+async def secret_santa(interaction: QuoteBotInteraction, year: Optional[int] = None):
+  """
+  Command for listing information about a year's secret santa.
+  """
+  await utils.run_secret_santa_info(interaction, year=year)
 
 async def main():
   async with client:
