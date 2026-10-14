@@ -70,21 +70,19 @@ def apply_reaction(data: dict, user_id: int, display_name: str, emoji: str) -> b
     True: if anything changed, False otherwise
   """
   # extract data
-  user_ids = data.setdefault("user_ids", {})
-  name = user_ids.setdefault(str(user_id), display_name)
   participants = data.setdefault("participants", [])
   attendees = data.setdefault("attendees", [])
 
   if emoji == PARTICIPANT_ADD:
-    moved = _remove(attendees, name)
-    return _add(participants, name) or moved
+    moved = _remove(attendees, display_name)
+    return _add(participants, display_name) or moved
   if emoji == PARTICIPANT_REMOVE:
-    return _remove(participants, name)
+    return _remove(participants, display_name)
   if emoji == ATTENDEE_ADD:
-    moved = _remove(participants, name)
-    return _add(attendees, name) or moved
+    moved = _remove(participants, display_name)
+    return _add(attendees, display_name) or moved
   if emoji == ATTENDEE_REMOVE:
-    return _remove(attendees, name)
+    return _remove(attendees, display_name)
   return False
 
 def read_secret_santa_data(data) -> dict:
